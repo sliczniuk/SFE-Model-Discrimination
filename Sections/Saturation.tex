@@ -1,0 +1,44 @@
+\documentclass[../Article_Model_Parameters.tex]{subfiles}
+\graphicspath{{\subfix{../Figures/}}}
+\begin{document}
+	
+	\subsubsection{Uneven solute's distribution in the solid phase} \label{CH: Gamma_Function}
+			
+	Following the idea of the Broken-and-Intact Cell (BIC) model (\citet{Sovova2017}), the internal diffusion coefficient $D_i$ is considered to be a product of the reference value of $D_i^R$ and the exponential decay function $\gamma$, as given by Equation \ref{EQ: C_sat_function}:
+	
+	{\footnotesize
+		\begin{equation}
+			D_i = D_i^R \gamma(c_s) = D_i^R \exp \left( \Upsilon \left( 1-\cfrac{ c_s }{c_{s0}} \right) \right) \label{EQ: C_sat_function}
+	\end{equation} }
+	
+	where  ${\color{black}\Upsilon}$ describes the curvature of the decay function. Equation \ref{Model_kinetic} describes the final form of the kinetic term:
+	
+	{\footnotesize
+		\begin{equation}
+			\label{Model_kinetic}
+			r_e = -\cfrac{D_i^R \gamma }{ \mu l^2 } \left( c_s  - \cfrac{\rho_s c_f }{ k_m \rho_f }  \right)
+	\end{equation} }
+	
+	The $\gamma$ function limits the solute's availability in the solid phase. Similarly to the BIC model, the solute is assumed to be contained in the cells, some of which are open because the cell walls were broken by grinding, with the rest remaining intact. The diffusion of the solute from a particle's core takes more time than the diffusion of the solute close to the outer surface. The same idea can be represented by the decaying internal diffusion coefficient, where the decreasing term is a function of the solute concentration in the solid. 
+	
+	Alternatively, the decay function $\gamma$ can be interpreted by referring to the Shrinking Core model presented by \citet{Goto1996}, where the particle radius changes as the amount of solute in the solid phase decreases. As the particle size decreases due to dissolution, the diffusion path increases, which makes the diffusion slower and reduces the value of the diffusion coefficient. This analogy can be applied to Equation \ref{EQ: C_sat_function} to justify the application of a varying diffusion coefficient.
+	
+	\subsubsection{Empirical correlations}
+	
+	The empirical correlations for $D_i$ and $\Upsilon$ were derived by {\color{red}article 1} and validated for temperatures between $30 - 40^\circ C$, pressures between $100 - 200$ bar, and mass flow rates between $3.33-6.67 \cdot 10^{-5}$ kg/s. Figures \ref{fig:Correlation_Di} and \ref{fig:Correlation_Gamma} show the results of multiple linear regression applied to solutions of parameter estimation and selected independent variables.
+	
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[trim = 0.0cm 0.0cm 0.0cm 0.0cm,clip,width=\columnwidth]{/Di_Re_F_1.png}
+		\caption{Multiple linear regression $D_i^R = f(Re, F)$}
+		\label{fig:Correlation_Di}
+	\end{figure}
+	
+	\begin{figure}[!ht]
+		\centering
+		\includegraphics[trim = 0.0cm 0.0cm 0.0cm 0.0cm,clip,width=\columnwidth]{/Gamma_Re_F_1.png}
+		\caption{Multiple linear regression $\Upsilon = f(Re, F)$}
+		\label{fig:Correlation_Gamma}
+	\end{figure}
+				
+\end{document}

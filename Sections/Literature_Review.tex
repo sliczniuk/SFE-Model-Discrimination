@@ -1,0 +1,26 @@
+\documentclass[../Article_Sensitivity_Analsysis.tex]{subfiles}
+\graphicspath{{\subfix{../Figures/}}}
+\begin{document}
+	
+	Design of Experiments (DoE) is a structured approach that examines how various elements influence a particular result. By evaluating multiple factors at once, DoE allows the uncovering of the impacts of each element and their combinations, yielding a comprehensive comprehension of the entire system. DoE begins with determining an experiment's objectives and selecting the study's process factors. DoE aims to obtain the maximum information from an experimental apparatus modelled by devising experiments that will yield the most informative data in a statistical sense for use in parameter estimation and model validation. 
+	
+	The first ideas of DoE were introduced by \citet{Fisher1935}, who described the fundamental problem of experimental design as deciding what pattern of factors combination will best reveal the properties of the response, and this response is influenced by the factors. This type of DoE views an experiment as simply connecting inputs with outputs and is therefore called a "black-box experiment design". It aims to select the combinations of factor values that will provide the most information on the input-output relationship in the presence of variation. This type's main class of statistical design techniques is the so-called factorial method. These methods are created to measure the additive effects on a response for each input factor and investigate the effects of interactions between factors. Factorial methods are unsuitable for situations where constraints exist on the output or internal states. They must also be better suited for dynamic experiments, where inputs and outputs are complex time profiles. However, this group of methods is still widely used due to its simplicity.
+	
+	The factorial methods can be used for parameter screening, giving main and interaction effects of the considered factors with fewer runs. \citet{Ramandi2011} applied a full factorial design for screening the extraction parameters of fatty acids from \textit{Borago officinalis L.} flowers by SFE technique before optimisation using central composition design. Four factors: temperature, pressure, modifier volume and static extraction time were considered independent variables for full factorial design. All these factors were studied at two levels. 
+	
+	\citet{Caldera2012} optimised extraction parameters of SFE to extract antioxidant compounds from rosemary. $2^3$ full factorial design was used to select important variables before optimisation of the selected factors by Box-Behnken design. Three factors, namely temperature, pressure and static extraction time, were studied in this experiment.
+	
+	As opposed to the "black-box" statistical experiment design methods, another form of optimal design has been developed, which takes explicit advantage of some knowledge of the structure underlying the system, represented by a mathematical model, in particular in the form of differential and algebraic equations. What characterises the model-based experiment design approach is :
+	
+	\begin{enumerate}
+		\item the explicit use of the model equations and current parameters to predict the "information content" of the next experiment
+		\item the application of an optimisation framework to the solution of the resulting numerical problem
+	\end{enumerate}
+	
+	After an initial dataset has been collected and fitted to a mathematical model, the model undergoes further analysis. Additional experiments may be designed and conducted to differentiate between competing models that passed the preliminary tests. Once inadequate models are rejected, the remaining model may undergo another round of experiment design to enhance the precision of its parameters. This paper focuses on the final step of the validation procedure, known as model-based Design of Experiments (DoE), aimed at improving parameter precision. To the authors' knowledge, the model-based design of dynamic experiments has not been applied to any case of supercritical extraction. The literature review below provides examples of this technique used in crystallization and pharmacology processes.
+	
+	\citet{Chung2000} applied model-based experimental design to a batch crystallization process with a cooling jacket. A dynamic programming formulation minimizes the volume of a confidence hyper-ellipsoid for the estimated nucleation and growth parameters over the supersaturation profile and the seed characteristics, namely, the crystal mass, mean size, and width of the seed distribution. As a result, the accuracy of the parameter estimates can be improved by identifying the optimal temperature profile.
+	
+	\citet{Duarte2019} investigated compartment models incorporating Michaelis-Menten elimination kinetics for pharmacological applications. The authors designed both static and dynamic experiments for 2- and 3-compartment models using D-optimality criteria. The dynamic experiments for both models involved determining the initial concentration in the first compartment and optimizing the profile of the mass flow rate of the drug entering this compartment.
+	
+\end{document}

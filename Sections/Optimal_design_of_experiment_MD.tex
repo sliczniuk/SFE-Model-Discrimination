@@ -1,0 +1,115 @@
+\documentclass[../Article_Design_of_Experiment.tex]{subfiles}
+\graphicspath{{\subfix{../Figures/}}}
+\begin{document}
+			
+	Let's consider two probability distributions $p(y_1)$ and $p(y_2)$ where each represents the Gaussian probability density function for a model.
+	
+	{\footnotesize
+	\begin{equation}
+		p(Y|y_1) = \prod_{i=1}^{n_t} \frac{1}{\sqrt{2\pi\sigma_1^2}} \exp \left( \frac{\sum \left(Y - y_1(t,x,p)\right)^2}{2\sigma_1^2} \right)
+	\end{equation}}
+	
+	If the ratio of two probability distributions is considered to indicate the measure of similarity, then $\ln \left(\frac{p(Y|y_1)}{p(Y|y_2)}\right)$ becomes a measure of the odds in favour of choosing hypothesis $H_1$ ($p(Y|y_1)$ is a true model) over hypothesis $H_2$ ($p(Y|y_2)$ is a true model). Alternatively, the ratio can be interpreted as the information in favour of hypothesis $H_1$ as opposed to the hypothesis $H_2$. The so-called 'weight of evidence' or expected information in favour of choosing $H_1$ over $H_2$ can be defined through the Kullback–Leibler divergence and is represented by:
+	
+	{\footnotesize
+	\begin{equation}
+		I(1:2) = \int_{-\infty}^{\infty} p(Y|y_1) \ln \left(\frac{p(Y|y_1)}{p(Y|y_2)}\right) dY 
+	\end{equation}}
+	
+	The above equation can be written more explicitly as
+	
+	{\footnotesize
+	\begin{align}
+		I(1:2) &= \int_{-\infty}^{\infty} p(Y|y_1) \left[ \sum_{i=1}^{n_t} \left( \ln\left( \frac{\sigma_2}{\sigma_1} \right) - \frac{(Y_i - y_{1i})^2}{2\sigma_1^2} + \frac{(Y_i - y_{2i})^2}{2\sigma_2^2}\right) \right] dY \nonumber \\
+		&= \sum_{i=1}^{n_t} \int_{-\infty}^{\infty} \left( p(Y|y_1) \ln\left(\frac{\sigma_2}{\sigma_1}\right) \right) dY - \sum_{i=1}^{n_t} \int_{-\infty}^{\infty} \left( p(Y|y_1) \frac{(Y_i-y_{1i})^2}{2\sigma_1^2} \right) dY \nonumber \\ 
+		&+ \sum_{i=1}^{n_t} \int_{-\infty}^{\infty} \left( p(Y|y_1) \frac{(Y_i-y_{2i})^2}{2\sigma_2^2}  \right) dY
+	\end{align}}
+	
+	As the expected error is constant for all the measurements: $\mathbb{E}[(Y_i-y_{1i})^2]=\mathbb{E}[\sigma_1^2]$, which simplifies the equation:
+	
+	{\footnotesize
+	\begin{align}
+		I(1:2) &= \sum_{i=1}^{n_t} \int_{-\infty}^{\infty} \left( p(Y|y_1) \ln \left(\frac{\sigma_2}{\sigma_1} \right) \right) dY - \sum_{i=1}^{n_t} \int_{-\infty}^{\infty} \left( \frac{1}{2} p(Y|y_1) \right) dY \nonumber \\ 
+		&+ \sum_{i=1}^{n_t} \int_{-\infty}^{\infty} \left( p(Y|y_1) \frac{(Y_i-y_{2i})^2}{2\sigma_2^2}  \right) dY
+	\end{align} }
+	
+	The first two terms can be simplified by taking a constant in front of integrals and by noticing that $\int p(x) dx = 1$. 
+	
+	{\footnotesize
+	\begin{equation}
+		I(1:2) = n_t \ln \left(\frac{\sigma_2}{\sigma_1} \right) - \frac{n_t}{2} + \sum_{i=1}^{n_t} \frac{1}{2\sigma_2^2} \int_{-\infty}^{\infty} \left( p(Y|y_1) \left( Y_i^2 - 2Y_iy_{2i} + y_{2i}^2 \right)  \right) dY
+	\end{equation}} 
+	
+	{\footnotesize
+	\begin{align}
+		I(1:2) &= n_t \ln \left(\frac{\sigma_2}{\sigma_1} \right) - \frac{n_t}{2} + \sum_{i=1}^{n_t} \frac{1}{2\sigma_2^2} \int_{-\infty}^{\infty} \left( p(Y|y_1) \times Y_i^2  \right) dY \nonumber \\ 
+		&-\sum_{i=1}^{n_t} \frac{2y_{2i}}{2\sigma_2^2} \underbrace{\int_{-\infty}^{\infty} \left( p(Y|y_1) \times Y_i  \right) dY}_{\text{expected value} = y_{1i} } +\sum_{i=1}^{n_t} \frac{y_{2i}^2}{2\sigma_2^2} \underbrace{\int_{-\infty}^{\infty} p(Y|y_1) dY}_{=1}
+	\end{align} }
+	
+	The remaining integral can be solved by recognizing that $\sigma^2 = \int_{-\infty}^{\infty} X^2 p(X) dX - \mathbb{E}[(X)]^2$, which leads to $\int_{-\infty}^{\infty} Y_i^2 p(Y|y_{1i}) dY = y_{1i}^2 + \sigma_1^2$. 
+	
+	The final form of the Kullback–Leibler divergence becomes:
+	
+	{\footnotesize
+	\begin{align}
+		I(1:2) &= n_t \ln \left(\frac{\sigma_2}{\sigma_1} \right) - \frac{n_t}{2} + \sum_{i=1}^{n_t} \frac{y_{1i}^2 + \sigma_1^2}{2\sigma_2^2} \sum_{i=1}^{n_t} \frac{2y_{2i}y_{1i}}{2\sigma_2^2} +\sum_{i=1}^{n_t}  \frac{y_{2i}^2}{2\sigma_2^2} \nonumber \\
+		&= n_t \ln \left(\frac{\sigma_2}{\sigma_1} \right) - \frac{n_t}{2} + \frac{n_t}{2\sigma_1^2} + \sum_{i=1}^{n_t} \frac{1}{\sigma_2^2} \left( y_{1i} - y_{2i} \right)^2 \\
+		I(2:1) &= n_t \ln \left(\frac{\sigma_1}{\sigma_2} \right) - \frac{n_t}{2} + \frac{n_t}{2\sigma_2^2} + \sum_{i=1}^{n_t} \frac{1}{2\sigma_1^2} \left( y_{1i} - y_{2i} \right)^2
+	\end{align} }
+	
+	While Kulback-Liebler divergence is a statistical distance, it is not a metric on the space of probability distributions. While metrics are symmetric and generalize linear distance, satisfying the triangle inequality, divergences are asymmetric in general and generalize squared distance. In general, $I(1:2)\neq I(2:1)$. By taking into account that the Kullbacl-Liebler divergence is additive for independent distribution, the function J for model discrimination can be defined as 
+	
+	{\footnotesize
+	\begin{align}
+		J(1,2) &= I(1:2) + I(2:1) = \int_{-\infty}^{\infty} [p(Y|y_2) - p(Y|y_1)] \ln \frac{p(Y|y_1)}{p(Y|y_2)} dy \nonumber \\
+		&= \frac{n_t(\sigma_1^2-\sigma_2^2)}{2\sigma_1^2\sigma_2^2} + \frac{\sigma_1^2+\sigma_2^2}{2\sigma_1\sigma_2}\times \sum_{i=1}^{n_t} \left( y_{1i}-y_{2i} \right)^2
+	\end{align} }
+	
+	The first term of J is independent of changes in $y_{1}$ and $y_{2}$, while the second term is equivalent to the sum of squared differences between two model outputs. By maximizing J, the $y_1$ and $y_2$ are spread apart. Although both models were fitted with the same dataset, they employ structurally different extraction kinetic terms. These structural differences lead to different outputs, particularly in regions not covered by the dataset.
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
