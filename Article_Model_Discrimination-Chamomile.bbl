@@ -1,9 +1,102 @@
-\begin{thebibliography}{20}
+\begin{thebibliography}{24}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Weidner(2018)]{Weidner2018}
+Eckhard Weidner.
+\newblock Impregnation via supercritical co2–what we know and what we need to
+  know.
+\newblock \emph{The Journal of Supercritical Fluids}, 134:\penalty0 220--227,
+  April 2018.
+\newblock ISSN 0896-8446.
+\newblock \doi{10.1016/j.supflu.2017.12.024}.
+
+\bibitem[Machado et~al.(2022)Machado, Mosquera, Martini, Goñi, and
+  Gañán]{Machado2022}
+Noelia~D. Machado, José~E. Mosquera, Raquel~E. Martini, María~L. Goñi, and
+  Nicolás~A. Gañán.
+\newblock Supercritical co$_2$-assisted impregnation/deposition of polymeric
+  materials with pharmaceutical, nutraceutical, and biomedical applications: A
+  review (2015–2021).
+\newblock \emph{The Journal of Supercritical Fluids}, 191:\penalty0 105763,
+  December 2022.
+\newblock ISSN 0896-8446.
+\newblock \doi{10.1016/j.supflu.2022.105763}.
+
+\bibitem[Fathi et~al.(2022)Fathi, Sodeifian, and Sajadian]{Fathi2022}
+Mostafa Fathi, Gholamhossein Sodeifian, and Seyed~Ali Sajadian.
+\newblock Experimental study of ketoconazole impregnation into polyvinyl
+  pyrrolidone and hydroxyl propyl methyl cellulose using supercritical carbon
+  dioxide: Process optimization.
+\newblock \emph{The Journal of Supercritical Fluids}, 188:\penalty0 105674,
+  September 2022.
+\newblock ISSN 0896-8446.
+\newblock \doi{10.1016/j.supflu.2022.105674}.
+
+\bibitem[Padrela et~al.(2018)Padrela, Rodrigues, Duarte, Dias, Braga, and
+  de~Sousa]{Padrela2018}
+Luís Padrela, Miguel~A. Rodrigues, Andreia Duarte, Ana~M.A. Dias, Mara~E.M.
+  Braga, and Hermínio~C. de~Sousa.
+\newblock Supercritical carbon dioxide-based technologies for the production of
+  drug nanoparticles/nanocrystals – a comprehensive review.
+\newblock \emph{Advanced Drug Delivery Reviews}, 131:\penalty0 22--78, June
+  2018.
+\newblock ISSN 0169-409X.
+\newblock \doi{10.1016/j.addr.2018.07.010}.
+
+\bibitem[Franco and De~Marco(2021)]{Franco2021}
+Paola Franco and Iolanda De~Marco.
+\newblock Nanoparticles and nanocrystals by supercritical co$_2$-assisted
+  techniques for pharmaceutical applications: A review.
+\newblock \emph{Applied Sciences}, 11\penalty0 (4):\penalty0 1476, February
+  2021.
+\newblock ISSN 2076-3417.
+\newblock \doi{10.3390/app11041476}.
+
+\bibitem[Saadati~Ardestani et~al.(2020)Saadati~Ardestani, Sodeifian, and
+  Sajadian]{SaadatiArdestani2020}
+Nedasadat Saadati~Ardestani, Gholamhossein Sodeifian, and Seyed~Ali Sajadian.
+\newblock Preparation of phthalocyanine green nano pigment using supercritical
+  co2 gas antisolvent (gas): experimental and modeling.
+\newblock \emph{Heliyon}, 6\penalty0 (9):\penalty0 e04947, September 2020.
+\newblock ISSN 2405-8440.
+\newblock \doi{10.1016/j.heliyon.2020.e04947}.
+
+\bibitem[Sodeifian et~al.(2022)Sodeifian, Sajadian, and
+  Derakhsheshpour]{Sodeifian2022}
+Gholamhossein Sodeifian, Seyed~Ali Sajadian, and Reza Derakhsheshpour.
+\newblock Co2 utilization as a supercritical solvent and supercritical
+  antisolvent in production of sertraline hydrochloride nanoparticles.
+\newblock \emph{Journal of CO2 Utilization}, 55:\penalty0 101799, January 2022.
+\newblock ISSN 2212-9820.
+\newblock \doi{10.1016/j.jcou.2021.101799}.
+
+\bibitem[Sodeifian and Sajadian(2017)]{Sodeifian2017}
+Gholamhossein Sodeifian and Seyed~Ali Sajadian.
+\newblock Investigation of essential oil extraction and antioxidant activity of
+  echinophora platyloba dc. using supercritical carbon dioxide.
+\newblock \emph{The Journal of Supercritical Fluids}, 121:\penalty0 52--62,
+  March 2017.
+\newblock ISSN 0896-8446.
+\newblock \doi{10.1016/j.supflu.2016.11.014}.
+
+\bibitem[Reverchon et~al.(1993)Reverchon, Donsi, and Osseo]{Reverchon1993}
+E.~Reverchon, G.~Donsi, and L.S. Osseo.
+\newblock Modeling of supercritical fluid extraction from herbaceous matrices.
+\newblock \emph{Industrial {\&} Engineering Chemistry Research}, 32\penalty0
+  (11):\penalty0 2721--2726, nov 1993.
+\newblock \doi{10.1021/ie00023a039}.
+
+\bibitem[Sovova(1994)]{Sovova1994}
+H.~Sovova.
+\newblock Rate of the vegetable oil extraction with supercritical co2.
+  modelling of extraction curves.
+\newblock \emph{Chemical Engineering Science}, 49\penalty0 (3):\penalty0
+  409--414, 1994.
+\newblock \doi{10.1016/0009-2509(94)87012-8}.
 
 \bibitem[Singh et~al.(2011)Singh, Khanam, Misraand, and Srivastava]{Singh2011}
 O.~Singh, Z.~Khanam, N.~Misraand, and M.K. Srivastava.
@@ -30,20 +123,37 @@ A.~Orav, A.~Raal, and E.~Arak.
 \newblock ISSN 1478-6427.
 \newblock \doi{10.1080/14786410802560690}.
 
-\bibitem[Reverchon et~al.(1993)Reverchon, Donsi, and Osseo]{Reverchon1993}
-E.~Reverchon, G.~Donsi, and L.S. Osseo.
-\newblock Modeling of supercritical fluid extraction from herbaceous matrices.
-\newblock \emph{Industrial {\&} Engineering Chemistry Research}, 32\penalty0
-  (11):\penalty0 2721--2726, nov 1993.
-\newblock \doi{10.1021/ie00023a039}.
+\bibitem[Goto et~al.(1996)Goto, Roy, and Hirose]{Goto1996}
+M.~Goto, B.C. Roy, and T.~Hirose.
+\newblock Shrinking-core leaching model for supercritical-fluid extraction.
+\newblock \emph{The Journal of Supercritical Fluids}, 9\penalty0 (2):\penalty0
+  128--133, jun 1996.
+\newblock \doi{10.1016/s0896-8446(96)90009-1}.
 
-\bibitem[Sovova(1994)]{Sovova1994}
-H.~Sovova.
-\newblock Rate of the vegetable oil extraction with supercritical co2.
-  modelling of extraction curves.
+\bibitem[Sovová et~al.(1994)Sovová, Kučera, and Jež]{Sovova1994b}
+H.~Sovová, J.~Kučera, and J.~Jež.
+\newblock Rate of the vegetable oil extraction with supercritical co2—ii.
+  extraction of grape oil.
 \newblock \emph{Chemical Engineering Science}, 49\penalty0 (3):\penalty0
-  409--414, 1994.
-\newblock \doi{10.1016/0009-2509(94)87012-8}.
+  415--420, 1994.
+\newblock ISSN 0009-2509.
+\newblock \doi{10.1016/0009-2509(94)87013-6}.
+
+\bibitem[Sovova et~al.(1994)Sovova, Komers, Kucuera, and Jezu]{Sovova1994a}
+H.~Sovova, R.~Komers, J.~Kucuera, and J.~Jezu.
+\newblock Supercritical carbon dioxide extraction of caraway essential oil.
+\newblock \emph{Chemical Engineering Science}, 49\penalty0 (15), 1994.
+\newblock \doi{10.1016/0009-2509(94)e0058-x}.
+
+\bibitem[Bartle et~al.(1990)Bartle, Clifford, Hawthorne, Langenfeld, Miller,
+  and Robinson]{Bartle1990}
+Keith~D. Bartle, Anthony~A. Clifford, Steven~B. Hawthorne, John~J. Langenfeld,
+  David~J. Miller, and Robert Robinson.
+\newblock A model for dynamic extraction using a supercritical fluid.
+\newblock \emph{The Journal of Supercritical Fluids}, 3\penalty0 (3):\penalty0
+  143--149, September 1990.
+\newblock ISSN 0896-8446.
+\newblock \doi{10.1016/0896-8446(90)90039-o}.
 
 \bibitem[Reverchon(1996)]{Reverchon1996}
 E.~Reverchon.
@@ -52,46 +162,6 @@ E.~Reverchon.
   1996.
 \newblock ISSN 1547-5905.
 \newblock \doi{10.1002/aic.690420627}.
-
-\bibitem[Fisher(1935)]{Fisher1935}
-R.A Fisher.
-\newblock \emph{The Design of Experiments}.
-\newblock Olivier \& Boyed, 1935.
-
-\bibitem[Ramandi et~al.(2011)Ramandi, Najafi, Raofie, and Ghasemi]{Ramandi2011}
-N.F. Ramandi, N.M. Najafi, F.~Raofie, and E.~Ghasemi.
-\newblock Central composite design for the optimization of supercritical carbon 
-	dioxide fluid extraction of fatty acids from borago officinalis l. flower.
-\newblock \emph{Journal of Food Science}, 76\penalty0 (9), October 2011.
-\newblock ISSN 1750-3841.
-\newblock \doi{10.1111/j.1750-3841.2011.02394.x}.
-
-\bibitem[Caldera et~al.(2012)Caldera, Figueroa, Vargas, and
-  Santos]{Caldera2012}
-G.~Caldera, Y.~Figueroa, M.~Vargas, and D.T. Santos.
-\newblock Optimization of supercritical fluid extraction of antioxidant
-  compounds from venezuelan rosemary leaves.
-\newblock \emph{International Journal of Food Engineering}, 8\penalty0 (4),
-  October 2012.
-\newblock ISSN 1556-3758.
-\newblock \doi{10.1515/1556-3758.1953}.
-
-\bibitem[Chung et~al.(2000)Chung, Ma, and Braatz]{Chung2000}
-S.H. Chung, D.L. Ma, and R.D. Braatz.
-\newblock Optimal model-based experimental design in batch crystallization.
-\newblock \emph{Chemometrics and Intelligent Laboratory Systems}, 50\penalty0
-  (1):\penalty0 83--90, January 2000.
-\newblock ISSN 0169-7439.
-\newblock \doi{10.1016/s0169-7439(99)00049-0}.
-
-\bibitem[Duarte et~al.(2019)Duarte, Atkinson, Granjo, and Oliveira]{Duarte2019}
-B.~Duarte, A.~Atkinson, J.~Granjo, and N.~Oliveira.
-\newblock Calculating d-optimal designs for compartmental models with a
-  michaelis–menten elimination rate.
-\newblock \emph{Journal of Process Control}, 83:\penalty0 88--101, November
-  2019.
-\newblock ISSN 0959-1524.
-\newblock \doi{10.1016/j.jprocont.2019.09.001}.
 
 \bibitem[Anderson(1995)]{Anderson1995}
 J.~D.~Jr Anderson.
@@ -129,30 +199,11 @@ H.~Sovova.
   2017.
 \newblock \doi{10.1016/j.supflu.2017.02.014}.
 
-\bibitem[Goto et~al.(1996)Goto, Roy, and Hirose]{Goto1996}
-M.~Goto, B.C. Roy, and T.~Hirose.
-\newblock Shrinking-core leaching model for supercritical-fluid extraction.
-\newblock \emph{The Journal of Supercritical Fluids}, 9\penalty0 (2):\penalty0
-  128--133, jun 1996.
-\newblock \doi{10.1016/s0896-8446(96)90009-1}.
-
 \bibitem[Gmehling et~al.(2019)Gmehling, Kleiber, Kolbe, and
   Rarey]{Gmehling2019}
 J.~Gmehling, M.~Kleiber, B.~Kolbe, and J.~Rarey.
 \newblock \emph{Chemical Thermodynamics for Process Simulation}.
 \newblock Wiley, mar 2019.
 \newblock \doi{10.1002/9783527809479}.
-
-\bibitem[Sovova et~al.(1994)Sovova, Komers, Kucuera, and Jezu]{Sovova1994a}
-H.~Sovova, R.~Komers, J.~Kucuera, and J.~Jezu.
-\newblock Supercritical carbon dioxide extraction of caraway essential oil.
-\newblock \emph{Chemical Engineering Science}, 49\penalty0 (15), 1994.
-\newblock \doi{10.1016/0009-2509(94)e0058-x}.
-
-\bibitem[Walter and Pronzato(2010)]{Walter2010}
-E.~Walter and L.~Pronzato.
-\newblock \emph{Identification of parametric models from experimental data}.
-\newblock Communications and control engineering. Springer, London, 2010.
-\newblock ISBN 9781849969963.
 
 \end{thebibliography}

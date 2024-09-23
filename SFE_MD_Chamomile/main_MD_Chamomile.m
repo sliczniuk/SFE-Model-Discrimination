@@ -7,7 +7,7 @@ addpath('\\home.org.aalto.fi\sliczno1\data\Documents\casadi-3.6.3-windows64-matl
 import casadi.*
 
 excel_file = 'Chamomile_Di_Gamma_2.xls';
-rng(69)
+%rng(69)
 
 %%
 Parameters_table        = readtable('Parameters.csv') ;                     % Table with prameters
@@ -18,7 +18,7 @@ N                       = 6;
 
 %% Create the solver
 Iteration_max               = 2;                                         % Maximum number of iterations for optimzer
-Time_max                    = 15;                                           % Maximum time of optimization in [h]
+Time_max                    = 18;                                           % Maximum time of optimization in [h]
 
 nlp_opts                    = struct;
 %nlp_opts.ipopt.max_iter     = Iteration_max;
@@ -35,8 +35,10 @@ bed                     = 0.92;                                              % P
 % Set time of the simulation
 PreparationTime         = 0;
 ExtractionTime          = 600;
-timeStep                = 1;                                                % Minutes
+timeStep                = 5;                                                % Minutes
 OP_change_Time          = 10; 
+%OP_change_Time_P        = 100; 
+Sample_Time             = 5;
 
 simulationTime          = PreparationTime + ExtractionTime;
 
@@ -46,9 +48,11 @@ Time                    = [0 Time_in_sec/60];                               % Mi
 
 N_Time                  = length(Time_in_sec);
 
-SAMPLE                  = LabResults(6:19,1);
+%SAMPLE                  = LabResults(6:19,1);
+SAMPLE                  = Sample_Time:Sample_Time:ExtractionTime;
 
 OP_change               = OP_change_Time:OP_change_Time:ExtractionTime;
+%OP_change_P             = OP_change_Time_P:OP_change_Time_P:ExtractionTime;
 
 % Check if the number of data points is the same for both the dataset and the simulation
 N_Sample                = [];
@@ -152,7 +156,10 @@ T0homog                 = OPT_solver.variable(numel(OP_change))';
 Flow                    = OPT_solver.variable(numel(OP_change))';
                           OPT_solver.subject_to( 3.33 <= Flow <= 6.67 );
 
-feedPress               = 150;               % MPa -> bar
+feedPress               = 200;               % MPa -> bar
+
+%Pressure                = OPT_solver.variable(numel(OP_change_P))';
+%                          OPT_solver.subject_to( 100 <= Pressure <= 200 );
 
 feedTemp                = repmat(T0homog,OP_change_Time/timeStep,1);
 feedTemp                = feedTemp(:)';
@@ -160,6 +167,9 @@ feedTemp                = [ feedTemp, T0homog(end)*ones(1,N_Time - numel(feedTem
 T_0                     = feedTemp(1);   
 
 feedPress               = feedPress * ones(1,length(Time_in_sec)) + 0 ;     % Bars
+%feedPress                = repmat(Pressure,OP_change_Time_P/timeStep,1);
+%feedPress                = feedPress(:)';
+%feedPress                = [ feedPress, Pressure(end)*ones(1,N_Time - numel(feedPress)) ];    
 
 feedFlow                = repmat(Flow,OP_change_Time/timeStep,1) * 1e-5;
 feedFlow                = feedFlow(:)';
@@ -204,16 +214,20 @@ end
 Yield_estimate_RBF     = X_RBF(Nx,N_Sample);
 Yield_estimate_FP      = X_FP(Nx,N_Sample);
 
-residual = Yield_estimate_FP - Yield_estimate_RBF;
+%residual = diff(Yield_estimate_FP) - diff(Yield_estimate_RBF);
+residual = diff(Yield_estimate_FP) - diff(Yield_estimate_RBF);
 
-JJ = - residual * residual';
+ControlEffort_P = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e+0) * diff(Flow)'   ;
+ControlEffort_T = diff(T0homog) * (diag(ones(1,numel(diff(T0homog)))) .* 1e-1) * diff(T0homog)';
+
+JJ = - (residual * residual');% - ControlEffort_P - ControlEffort_T;
 
 %% Defin intial guesses
 %T0 = linspace(30,40,numel(T0homog))+273;
 T0 = ( (40-30).*rand(1,numel(T0homog)) + 30 )+273;
 %F0 = linspace(3.33,6.67,numel(Flow));
 F0 = ( (6.67-3.33).*rand(1,numel(Flow)) + 3.33 ) ;
-%P0 = ( (200 -100) .*rand(1,numel(Press)) + 100  ) ;
+%P0 = ( (200 -100) .*rand(1,numel(Pressure)) + 100  ) ;
 
 %% Solve the optimization problem
 OPT_solver.minimize(JJ);
@@ -227,31 +241,86 @@ catch
     KOUT = OPT_solver.debug.value([T0homog, Flow])
 end
 
-figure()
+%%
+FY_RBF = Function('FY_RBF',{[T0homog, Flow]},{X_RBF(end,:)});
+FY_FP  = Function('FY_FP',{[T0homog, Flow]},{X_FP(end,:)});
+
+%%
+Y_RBF   = full(FY_RBF(KOUT));
+Y_FP    = full(FY_FP(KOUT));
+
+Y_RBF_0 = full(FY_RBF([T0, F0]));
+Y_FP_0  = full(FY_FP([T0, F0]));
+
+%%
+%Plotting
+subplot(4,1,1)
+hold on
+plot(Time, Y_RBF_0, 'b--', 'LineWidth',2)
+plot(Time, Y_RBF,   'b', 'LineWidth',2)
+
+plot(Time, Y_FP_0,  'r--','LineWidth',2)
+plot(Time, Y_FP,    'r','LineWidth',2)
+hold off
+legend('Inital RBF','Final RBF', 'Inital FP', 'Final FP', 'Location', 'southeast')
+legend boxoff
+ylabel('y gram')
+xlabel('Time min')
+
+subplot(4,1,3)
 hold on
 stairs([0 OP_change],[KOUT(1:numel(OP_change)) KOUT(numel(OP_change))]-273, 'LineWidth', 2)
 stairs([0 OP_change],[T0 T0(end)]-273, 'LineWidth', 2)
 hold off
 ylabel('Temperture C')
 xlabel('Time min')
-%legend('Optimized solution','Inital guess', 'Location','Best', 'box', 'off')
-%set(gcf,'PaperOrientation','landscape'); print(figure(1),['2.pdf'],'-dpdf','-bestfit')
-%exportgraphics(figure(1), ['2.png'], "Resolution",300);
-%close all
 
-figure()
+subplot(4,1,4)
 hold on
-stairs([0 OP_change],[KOUT(numel(OP_change)+1:end) KOUT(end)]* 1e-5, 'LineWidth', 2)
+stairs([0 OP_change],[KOUT(numel(OP_change)+1:2*numel(OP_change)) KOUT(2*numel(OP_change))] * 1e-5, 'LineWidth', 2)
 stairs([0 OP_change],[F0 F0(end)]* 1e-5, 'LineWidth', 2)
 hold off
 ylabel('Mass flow rate kg/s')
 xlabel('Time min')
 
-%Plotting
-%figure(which_dataset)
-%hold on
-%title(['Dataset: ',num2str(which_dataset)])
-%plot(SAMPLE, data_org,     ['o' ,COLORS(ii)], 'LineWidth',2, 'DisplayName',[num2str(round(T0homog-273)),'$^\circ C$, ',num2str(feedPress(1)),' bar'] )
-%plot(Time, xx_FP_0(end,:), ['--',COLORS(ii)], 'LineWidth',2, 'HandleVisibility','off' )
-%plot(Time, xx_RBF_0(end,:),[':' ,COLORS(ii)], 'LineWidth',2, 'HandleVisibility','off' )
+subplot(4,1,2)
+hold on
+plot(Time(2:end), diff(Y_RBF_0), 'b--', 'LineWidth',2)
+plot(Time(2:end), diff(Y_RBF),   'b', 'LineWidth',2)
 
+plot(Time(2:end), diff(Y_FP_0),  'r--','LineWidth',2)
+plot(Time(2:end), diff(Y_FP),    'r','LineWidth',2)
+hold off
+legend('Inital RBF','Final RBF', 'Inital FP', 'Final FP', 'Location', 'northeast')
+legend boxoff
+ylabel('dy/dt gram/s')
+xlabel('Time min')
+%{
+subplot(4,1,4)
+hold on
+stairs([0 OP_change_P],[KOUT(2*numel(OP_change)+1:end) KOUT(numel(end))], 'LineWidth', 2)
+stairs([0 OP_change_P],[P0 P0(end)], 'LineWidth', 2)
+hold off
+ylabel('Mass flow rate kg/s')
+xlabel('Time min')
+%}
+
+%%
+%{
+FLOW = linspace(3.3,6.7,20);
+TEMP = linspace(30,40,20)+273;
+AA = nan(numel(FLOW),numel(TEMP));
+
+JJ_Fun = Function('JJ_Fun',{[T0homog, Flow]},{JJ});
+
+for ii=1:numel(FLOW)
+    for jj = 1:numel(TEMP)
+        AA(ii,jj) = full( JJ_Fun( [TEMP(jj)*ones(1,60), FLOW(ii)*ones(1,60)] ) ) ;
+        [ii,jj]
+    end
+end
+
+%%
+figure()
+imagesc(TEMP, FLOW, AA)
+%}
