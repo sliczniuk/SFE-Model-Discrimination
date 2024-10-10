@@ -1,4 +1,4 @@
-\begin{thebibliography}{24}
+\begin{thebibliography}{30}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -163,6 +163,31 @@ E.~Reverchon.
 \newblock ISSN 1547-5905.
 \newblock \doi{10.1002/aic.690420627}.
 
+\bibitem[Box and Hill(1967)]{Box1967}
+G.~E.P. Box and W.~J. Hill.
+\newblock Discrimination among mechanistic models.
+\newblock \emph{Technometrics}, 9\penalty0 (1):\penalty0 57--71, February 1967.
+\newblock ISSN 1537-2723.
+\newblock \doi{10.1080/00401706.1967.10490441}.
+
+\bibitem[Buzzi-Ferraris and Forzatti(1983)]{BuzziFerraris1983}
+Guido Buzzi-Ferraris and Pio Forzatti.
+\newblock A new sequential experimental design procedure for discriminating
+  among rival models.
+\newblock \emph{Chemical Engineering Science}, 38\penalty0 (2):\penalty0
+  225--232, 1983.
+\newblock ISSN 0009-2509.
+\newblock \doi{10.1016/0009-2509(83)85004-0}.
+
+\bibitem[Chen and Asprey(2003)]{Chen2003}
+Bing~H. Chen and Steven~P. Asprey.
+\newblock On the design of optimally informative dynamic experiments for model
+  discrimination in multiresponse nonlinear situations.
+\newblock \emph{Industrial \&; Engineering Chemistry Research}, 42\penalty0
+  (7):\penalty0 1379--1390, February 2003.
+\newblock ISSN 1520-5045.
+\newblock \doi{10.1021/ie0203025}.
+
 \bibitem[Anderson(1995)]{Anderson1995}
 J.~D.~Jr Anderson.
 \newblock \emph{Computational fluid dynamics the basic with applications}.
@@ -205,5 +230,29 @@ J.~Gmehling, M.~Kleiber, B.~Kolbe, and J.~Rarey.
 \newblock \emph{Chemical Thermodynamics for Process Simulation}.
 \newblock Wiley, mar 2019.
 \newblock \doi{10.1002/9783527809479}.
+
+\bibitem[Antonie and Pereira(2019)]{Antonie2019}
+Paul Antonie and Camila~G. Pereira.
+\newblock Solubility of functional compounds in supercritical co2: Data
+  evaluation and modelling.
+\newblock \emph{Journal of Food Engineering}, 245:\penalty0 131--138, March
+  2019.
+\newblock ISSN 0260-8774.
+\newblock \doi{10.1016/j.jfoodeng.2018.10.012}.
+
+\bibitem[Himmelblau(1970)]{Himmelblau1970}
+David~Mautner Himmelblau.
+\newblock \emph{Process analysis by statistical methods}.
+\newblock Wiley, New York, 1970.
+\newblock ISBN 047139985X.
+\newblock [by] David M. Himmelblau., Includes bibliographical references.
+
+\bibitem[Pukelsheim and Rosenberger(1993)]{Pukelsheim1993}
+Friedrich Pukelsheim and James~L. Rosenberger.
+\newblock Experimental designs for model discrimination.
+\newblock \emph{Journal of the American Statistical Association}, 88\penalty0
+  (422):\penalty0 642--649, June 1993.
+\newblock ISSN 1537-274X.
+\newblock \doi{10.1080/01621459.1993.10476317}.
 
 \end{thebibliography}

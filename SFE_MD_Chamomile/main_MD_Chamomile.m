@@ -14,10 +14,10 @@ Parameters_table        = readtable('Parameters.csv') ;                     % Ta
 Parameters              = num2cell(Parameters_table{:,3});                  % Parameters within the model + (m_max), m_ratio, sigma
 
 LabResults              = xlsread('dataset_2.xlsx');
-N                       = 6;
+N                       = 5;
 
 %% Create the solver
-Iteration_max               = 2;                                         % Maximum number of iterations for optimzer
+Iteration_max               = 10;                                         % Maximum number of iterations for optimzer
 Time_max                    = 18;                                           % Maximum time of optimization in [h]
 
 nlp_opts                    = struct;
@@ -205,22 +205,59 @@ end
 X_FP                    = MX(Nx,N_Time+1);
 X_FP(:,1)               = x0;
 
+sigma_T = 0.1; sigma_F = 0.1; sigma_Y = 0.03;
+JJ = 0;
 % Symbolic integration
 for j=1:N_Time
     X_FP(:,j+1)=F_FP(X_FP(:,j), [uu(j,:)'; Parameters_sym] );
+
+    Yield_estimate_RBF     = X_RBF(Nx,j);
+    Yield_estimate_FP      = X_FP(Nx,j);
+
+    S_RBF_T                = jacobian(Yield_estimate_RBF, T0homog);
+    FI_RBF_T               = (S_RBF_T * S_RBF_T');
+    
+    S_RBF_F                = jacobian(Yield_estimate_RBF, Flow);
+    FI_RBF_F               = (S_RBF_F * S_RBF_F');
+    
+    S_FP_T                 = jacobian(Yield_estimate_FP, T0homog);
+    FI_FP_T                = (S_FP_T * S_FP_T');
+    
+    S_FP_F                 = jacobian(Yield_estimate_FP, Flow);
+    FI_FP_F                = (S_FP_F * S_FP_F');
+
+    sigma_12               = sigma_Y + ( FI_RBF_T .* sigma_T^2) + (FI_RBF_F .* sigma_F^2);
+    sigma_22               = sigma_Y + ( FI_FP_T  .* sigma_T^2) + (FI_FP_F  .* sigma_F^2);
+
+    residual_sigma         = (sigma_12) - (sigma_22);
+
+    denumerator_1          = ( 1./(sigma_Y^2 + sigma_12) ) - ( 1./(sigma_Y^2 + sigma_22) );
+    denumerator_2          = ( 1./(sigma_Y^2 + sigma_12) ) + ( 1./(sigma_Y^2 + sigma_22) );
+
+    residual = ( (Yield_estimate_FP) - (Yield_estimate_RBF) )^2;
+    
+    JJ = residual_sigma/2 * denumerator_1 + residual/2 * denumerator_2;
+
 end
 
 %% Find the measurment from the simulation
-Yield_estimate_RBF     = X_RBF(Nx,N_Sample);
-Yield_estimate_FP      = X_FP(Nx,N_Sample);
+%Yield_estimate_RBF     = X_RBF(Nx,N_Sample);
+%Yield_estimate_FP      = X_FP(Nx,N_Sample);
 
 %residual = diff(Yield_estimate_FP) - diff(Yield_estimate_RBF);
-residual = diff(Yield_estimate_FP) - diff(Yield_estimate_RBF);
 
-ControlEffort_P = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e+0) * diff(Flow)'   ;
-ControlEffort_T = diff(T0homog) * (diag(ones(1,numel(diff(T0homog)))) .* 1e-1) * diff(T0homog)';
+%ControlEffort_P = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e+0) * diff(Flow)'   ;
+%ControlEffort_T = diff(T0homog) * (diag(ones(1,numel(diff(T0homog)))) .* 1e-1) * diff(T0homog)';
 
-JJ = - (residual * residual');% - ControlEffort_P - ControlEffort_T;
+%square_diff = (residual * residual');% - ControlEffort_P - ControlEffort_T;
+
+%sigma_1 = 0.03;
+%sigma_2 = 0.0308;
+
+%nt = numel(residual);
+
+%JJ = nt * (sigma_1^2 - sigma_2^2)^2 / (2*(sigma_1^2)*(sigma_2^2)) + (sigma_1^2 + sigma_2^2)^2 / (2*sigma_1*sigma_2) * square_diff;
+JJ = -JJ;
 
 %% Defin intial guesses
 %T0 = linspace(30,40,numel(T0homog))+273;
@@ -234,13 +271,14 @@ OPT_solver.minimize(JJ);
 OPT_solver.set_initial([T0homog, Flow], [T0, F0] );
 
 %%
+tic
 try
     sol  = OPT_solver.solve();
-    KOUT = full(sol.value([T0homog, Flow])) 
+    KOUT = full(sol.value([T0homog, Flow])) ;
 catch
-    KOUT = OPT_solver.debug.value([T0homog, Flow])
+    KOUT = OPT_solver.debug.value([T0homog, Flow]);
 end
-
+toc
 %%
 FY_RBF = Function('FY_RBF',{[T0homog, Flow]},{X_RBF(end,:)});
 FY_FP  = Function('FY_FP',{[T0homog, Flow]},{X_FP(end,:)});
@@ -262,26 +300,11 @@ plot(Time, Y_RBF,   'b', 'LineWidth',2)
 plot(Time, Y_FP_0,  'r--','LineWidth',2)
 plot(Time, Y_FP,    'r','LineWidth',2)
 hold off
-legend('Inital RBF','Final RBF', 'Inital FP', 'Final FP', 'Location', 'southeast')
+legend('Inital RBF','Final RBF', 'Inital FP', 'Final FP', 'Location', 'northoutside', 'Orientation','horizontal')
 legend boxoff
 ylabel('y gram')
 xlabel('Time min')
-
-subplot(4,1,3)
-hold on
-stairs([0 OP_change],[KOUT(1:numel(OP_change)) KOUT(numel(OP_change))]-273, 'LineWidth', 2)
-stairs([0 OP_change],[T0 T0(end)]-273, 'LineWidth', 2)
-hold off
-ylabel('Temperture C')
-xlabel('Time min')
-
-subplot(4,1,4)
-hold on
-stairs([0 OP_change],[KOUT(numel(OP_change)+1:2*numel(OP_change)) KOUT(2*numel(OP_change))] * 1e-5, 'LineWidth', 2)
-stairs([0 OP_change],[F0 F0(end)]* 1e-5, 'LineWidth', 2)
-hold off
-ylabel('Mass flow rate kg/s')
-xlabel('Time min')
+%set(gca,'FontSize',10);
 
 subplot(4,1,2)
 hold on
@@ -291,10 +314,34 @@ plot(Time(2:end), diff(Y_RBF),   'b', 'LineWidth',2)
 plot(Time(2:end), diff(Y_FP_0),  'r--','LineWidth',2)
 plot(Time(2:end), diff(Y_FP),    'r','LineWidth',2)
 hold off
-legend('Inital RBF','Final RBF', 'Inital FP', 'Final FP', 'Location', 'northeast')
-legend boxoff
+%legend('Inital RBF','Final RBF', 'Inital FP', 'Final FP', 'Location', 'northeast')
+%legend boxoff
 ylabel('dy/dt gram/s')
 xlabel('Time min')
+%set(gca,'FontSize',10);
+
+subplot(4,1,3)
+hold on
+stairs([0 OP_change],[KOUT(1:numel(OP_change)) KOUT(numel(OP_change))]-273, 'LineWidth', 2)
+stairs([0 OP_change],[T0 T0(end)]-273, 'LineWidth', 2)
+hold off
+ylabel('Temperture C')
+xlabel('Time min')
+%set(gca,'FontSize',10);
+
+subplot(4,1,4)
+hold on
+stairs([0 OP_change],[KOUT(numel(OP_change)+1:2*numel(OP_change)) KOUT(2*numel(OP_change))] * 1e-5, 'LineWidth', 2)
+stairs([0 OP_change],[F0 F0(end)]* 1e-5, 'LineWidth', 2)
+hold off
+ylabel('Mass flow rate kg/s')
+xlabel('Time min')
+%set(gca,'FontSize',10);
+
+%set(gcf,'PaperPositionMode','auto')
+%print(figure(1),[num2str(feedPress(1)),'.png'],'-dpng', '-r500')
+%close all
+
 %{
 subplot(4,1,4)
 hold on

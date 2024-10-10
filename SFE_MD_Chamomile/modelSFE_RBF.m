@@ -103,9 +103,9 @@ function xdot = modelSFE_RBF(x, p, mask, dt, N)
     %re            = (Di ./ mi ./ lp2)  .* ( SOLID  );
     %re            = (Sat_coe ./ mi ./ lp2)  .* ( SOLID );
     %re            = RBF_Function_1D( Csolid_percentage_left, 2, parameters) * 1e-3;
-    re             = RBF_Function_2D_Single_Layer( Csolid_percentage_left, RE, N) * 1e-3;
+    %re             = RBF_Function_2D_Single_Layer( Csolid_percentage_left, RE, N) * 1e-3;
     %re            = RBF_Function_2D_Double_Layer_Double_Hidden( Csolid_percentage_left, RE(ind), N, parameters) * 1e-3;
-    %re            = RBF_Function_3D_Single_Layer( Csolid_percentage_left, RE_vector, RHO./800, N, parameters) * 1e-3;
+    re            = RBF_Function_3D_Single_Layer( Csolid_percentage_left, RE, RHO./800, N, parameters) * 1e-3;
     
     %% model
     xdot = [

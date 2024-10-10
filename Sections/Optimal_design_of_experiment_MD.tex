@@ -2,11 +2,11 @@
 \graphicspath{{\subfix{../Figures/}}}
 \begin{document}
 			
-	Let's consider two probability distributions $p(y_1)$ and $p(y_2)$ where each represents the Gaussian probability density function for a model.
+	Following the work of \citet{Himmelblau1970}, two probability distributions $p(y_1)$ and $p(y_2)$ are considered to represents the Gaussian probability density function for each of the models output.
 	
 	{\footnotesize
 	\begin{equation}
-		p(Y|y_1) = \prod_{i=1}^{n_t} \frac{1}{\sqrt{2\pi\sigma_1^2}} \exp \left( \frac{\sum \left(Y - y_1(t,x,p)\right)^2}{2\sigma_1^2} \right)
+		p(Y|y_k) = \prod_{i=1}^{n_t} \frac{1}{\sqrt{2\pi\sigma_k^2}} \exp \left( \frac{ \left(Y - y_k\right)^2}{2\sigma_k^2} \right) \quad \forall ~ k\in \left\{1,2\right\}
 	\end{equation}}
 	
 	If the ratio of two probability distributions is considered to indicate the measure of similarity, then $\ln \left(\frac{p(Y|y_1)}{p(Y|y_2)}\right)$ becomes a measure of the odds in favour of choosing hypothesis $H_1$ ($p(Y|y_1)$ is a true model) over hypothesis $H_2$ ($p(Y|y_2)$ is a true model). Alternatively, the ratio can be interpreted as the information in favour of hypothesis $H_1$ as opposed to the hypothesis $H_2$. The so-called 'weight of evidence' or expected information in favour of choosing $H_1$ over $H_2$ can be defined through the Kullback–Leibler divergence and is represented by:
@@ -53,15 +53,79 @@
 		&= n_t \ln \left(\frac{\sigma_1}{\sigma_2} \right) - \frac{n_t}{2} + \frac{n_t}{2\sigma_2^2} + \sum_{i=1}^{n_t} \frac{1}{2\sigma_1^2} \left( y_{1i} - y_{2i} \right)^2 &&
 	\end{flalign} }
 	
-	While Kulback-Liebler divergence is a statistical distance, it is not a metric on the space of probability distributions. While metrics are symmetric and generalize linear distance, satisfying the triangle inequality, divergences are asymmetric in general and generalize squared distance. In general, $I(1:2)\neq I(2:1)$. By taking into account that the Kullbacl-Liebler divergence is additive for independent distribution, the function j for model discrimination can be defined as 
+	While Kulback-Liebler divergence is a statistical distance, it is not a metric on the space of probability distributions. While metrics are symmetric and generalize linear distance, satisfying the triangle inequality, divergences are asymmetric $\left(I(1:2)\neq I(2:1)\right)$ in general and generalize squared distance. By taking into account that the Kullbacl-Liebler divergence is additive for independent distribution, the function j for model discrimination can be defined as 
 	
 	{\footnotesize
-	\begin{flalign}
-		j(1,2) &= I(1:2) + I(2:1) = \int_{-\infty}^{\infty} [p(Y|y_2) - p(Y|y_1)] \ln \frac{p(Y|y_1)}{p(Y|y_2)} dy &&\nonumber \\
+	\begin{flalign} 
+		j &= I(1:2) + I(2:1) = \int_{-\infty}^{\infty} [p(Y|y_2) - p(Y|y_1)] \ln \frac{p(Y|y_1)}{p(Y|y_2)} dy &&\nonumber \\
 		&= \frac{n_t(\sigma_1^2-\sigma_2^2)}{2\sigma_1^2\sigma_2^2} + \frac{\sigma_1^2+\sigma_2^2}{2\sigma_1\sigma_2}\times \sum_{i=1}^{n_t} \left( y_{1i}-y_{2i} \right)^2 &&
 	\end{flalign} }
 	
-	The first term of $j$ is independent of changes in $y_{1}$ and $y_{2}$, while the second term is equivalent to the sum of squared differences between two model outputs. By maximizing $j$, the $y_1$ and $y_2$ are spread apart. Although both models were fitted with the same dataset, they employ structurally different extraction kinetic terms. These structural differences lead to different outputs, particularly in regions not covered by the dataset.
+	The first term of $j$ is independent of changes in $y_{1}$ and $y_{2}$, while the second term represents the sum of squared differences between the two model outputs. Maximizing $j$ increases the separation between $y_1$ and $y_2$ as define by the Equation \ref{EQ:Formulation}. Such a definition of the cost function is equivalent to the criterion derived by \citet{Pukelsheim1993}. This criterion failed to take account of the variances of the estimated responses. Assuming that variance of each model is a sum of two factors, the experimental variance $\sigma_Y$ of the experimental response and the predicted variance $\sigma_k^p$ of a model response at new experimental conditions. The experimental variance $\sigma_Y$ is estimated based on the previous experiments and assumed to be a mean of standard deviations from Table \ref{tab:Modelling_Error}. The predicted variance is calculated by incorporating the Fisher Information matrix $\mathcal{F}$ and the standard deviations of the parameters. 
+	
+	{\footnotesize
+		\begin{equation}
+			\mathcal{F}(\Theta, t_i) = \frac{\partial y(t_i, \Theta)}{\partial \Theta} \begin{bmatrix}
+				\frac{1}{\sigma_{\theta_1}^2} & 0 & 0\\
+				0 & \ddots & 0 \\
+				0 & 0 & \frac{1}{\sigma_{\theta_{n}}^2} 
+			\end{bmatrix}\ \frac{\partial y(t_i, \Theta)}{\partial \Theta^\top} 
+	\end{equation} }
+
+	The inverse of the Fisher information matrix, provides an estimate of the covariance matrix of the parameter estimates, as given by The Cramer-Rao bound. In such a case a total variance become
+	
+	{\footnotesize
+	\begin{equation}
+		\sigma_k(t_i) = \sigma_Y + \sum_{j=1}^{n} \left(\frac{\partial^2 y_k(t_i)}{\partial \theta_j \partial \theta_j} \sigma_{\theta i} \right) \quad \forall ~ k\in \left\{1,2\right\}
+	\end{equation}
+	}
+	
+	By taking into account the modified definition of variance, the cost function becomes:
+	
+	{\footnotesize
+	\begin{align}
+		j = \sum_{i=1}^{n_t} &\frac{\left(\sigma_{\theta 1}^2(t_i) - \sigma_{\theta 2}^2(t_i)\right)}{2}  \left( \frac{1}{\sigma_{Y}^2 + \sigma_{\theta 1}^2(t_i)} - \frac{1}{\sigma_{Y}^2 + \sigma_{\theta 2}^2(t_i)} \right) \nonumber \\
+		&+ \frac{\left( y_1(t_i) - y_2(t_i) \right)^2}{2} \left( \frac{1}{\sigma_{Y}^2 + \sigma_{\theta 1}^2(t_i)} + \frac{1}{\sigma_{Y}^2 + \sigma_{\theta 2}^2(t_i)} \right)  
+		\end{align}}
+	
+	The above equation in matrix form is given by:
+	
+	{\footnotesize
+		\begin{equation}
+			\begin{split}
+				j = \mathbf{1}^T \left( \frac{1}{2} \left( \boldsymbol{\sigma_{\theta_1}^2} - \boldsymbol{\sigma_{\theta_2}^2} \right) \circ \left( \frac{1}{\sigma_Y^2 + \boldsymbol{\sigma_{\theta_1}^2}} - \frac{1}{\sigma_Y^2 + \boldsymbol{\sigma_{\theta_2}^2}} \right) \right. \\
+				\left. + \frac{1}{2} \left( \Delta \mathbf{y} \circ \Delta \mathbf{y} \right) \circ \left( \frac{1}{\sigma_Y^2 + \boldsymbol{\sigma_{\theta_1}^2}} + \frac{1}{\sigma_Y^2 + \boldsymbol{\sigma_{\theta_2}^2}} \right) \right)
+			\end{split}
+		\end{equation}
+	}
+	
+	where: 
+	{\footnotesize
+		\begin{equation*}
+		 \boldsymbol{\sigma_{\theta_1}^2} = \begin{pmatrix} \sigma_{\theta_{1,1}}^2 \\ \sigma_{\theta_{1,2}}^2 \\ \vdots \\ \sigma_{\theta_{1,n_t}}^2 \end{pmatrix}, \boldsymbol{\sigma_{\theta_2}^2} = \begin{pmatrix} \sigma_{\theta_{2,1}}^2 \\ \sigma_{\theta_{2,2}}^2 \\ \vdots \\ \sigma_{\theta_{2,n_t}}^2 \end{pmatrix}, \mathbf{y_1} = \begin{pmatrix} y_1(t_1) \\ y_1(t_2) \\ \vdots \\ y_1(t_{n_t}) \end{pmatrix},  \mathbf{y_2} = \begin{pmatrix} y_2(t_1) \\ y_2(t_2) \\ \vdots \\ y_2(t_{n_t}) \end{pmatrix} 
+	\end{equation*} }
+			
+	The symbol \( \circ \) denotes element-wise multiplication between the vectors.
+	
+	The optimization problem is solved for multiple cases of constant pressure: 100, 125, 150, 175 and 200 bar.
+	
+		{\footnotesize
+		\begin{equation}
+			\begin{aligned} 
+				&\Xi^* &= \arg &\min_{ T^{in}, F \in \Xi} -j  \\
+				&\text{subject to}
+				& \dot{x} &= G(x,t,\Theta;\Xi) \\
+				&& t_0&=0\quad~\text{min} \\
+				&& t_f&=600~\text{min} \\
+				&& T^{0} &= T^{in}(t=0) \\
+				&& P(t) & \in \{100, 125, 150, 175, 200\}~\text{bar} \\
+				%&& \dot{y} = g(x(t)) \\
+				&& 30^\circ C \leq &T^{in}(t) \leq 40^\circ C \\
+				&& 3.33 \cdot 10^{-5} \leq &F(t) \leq 6.67 \cdot 10^{-5}
+			\end{aligned} \label{EQ:Formulation}
+	\end{equation} }
+	
+	Although both models were fitted using the same dataset, they incorporate structurally different extraction kinetics, leading to distinct outputs, especially in regions not covered by the data. New experimental conditions ($\Xi^*$) are determined by identifying the set of controls that causes the greatest divergence between the models’ outputs. The next step is to conduct the experiment and compare the results with the model predictions. The model that most accurately predicts the experimental outcome is retained for further use. 
 
 \end{document}
 
