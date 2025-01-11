@@ -17,12 +17,12 @@ LabResults              = xlsread('dataset_2.xlsx');
 N                       = 5;
 
 %% Create the solver
-Iteration_max               = 10;                                         % Maximum number of iterations for optimzer
-Time_max                    = 18;                                           % Maximum time of optimization in [h]
+Iteration_max               = 15;                                         % Maximum number of iterations for optimzer
+Time_max                    = 10;                                           % Maximum time of optimization in [h]
 
 nlp_opts                    = struct;
-%nlp_opts.ipopt.max_iter     = Iteration_max;
-nlp_opts.ipopt.max_cpu_time = Time_max*3600;
+nlp_opts.ipopt.max_iter     = Iteration_max;
+%nlp_opts.ipopt.max_cpu_time = Time_max*3600;
 nlp_opts.ipopt.hessian_approximation ='limited-memory';
 
 %% Load paramters
@@ -36,7 +36,7 @@ bed                     = 0.92;                                              % P
 PreparationTime         = 0;
 ExtractionTime          = 600;
 timeStep                = 5;                                                % Minutes
-OP_change_Time          = 10; 
+OP_change_Time          = 15; 
 %OP_change_Time_P        = 100; 
 Sample_Time             = 5;
 
@@ -51,7 +51,7 @@ N_Time                  = length(Time_in_sec);
 %SAMPLE                  = LabResults(6:19,1);
 SAMPLE                  = Sample_Time:Sample_Time:ExtractionTime;
 
-OP_change               = OP_change_Time:OP_change_Time:ExtractionTime;
+OP_change               = 0:OP_change_Time:ExtractionTime-OP_change_Time;
 %OP_change_P             = OP_change_Time_P:OP_change_Time_P:ExtractionTime;
 
 % Check if the number of data points is the same for both the dataset and the simulation
@@ -161,18 +161,21 @@ feedPress               = 200;               % MPa -> bar
 %Pressure                = OPT_solver.variable(numel(OP_change_P))';
 %                          OPT_solver.subject_to( 100 <= Pressure <= 200 );
 
+T_0                     = 35+273;%feedTemp(1);   
 feedTemp                = repmat(T0homog,OP_change_Time/timeStep,1);
 feedTemp                = feedTemp(:)';
-feedTemp                = [ feedTemp, T0homog(end)*ones(1,N_Time - numel(feedTemp)) ];    
-T_0                     = feedTemp(1);   
+feedTemp(1)             = T_0;
+feedTemp                = [ feedTemp, T0homog(end)*ones(1,N_Time - numel(feedTemp)) ];   
 
-feedPress               = feedPress * ones(1,length(Time_in_sec)) + 0 ;     % Bars
+feedPress               = feedPress * ones(1,numel(feedTemp)) + 0 ;     % Bars
 %feedPress                = repmat(Pressure,OP_change_Time_P/timeStep,1);
 %feedPress                = feedPress(:)';
 %feedPress                = [ feedPress, Pressure(end)*ones(1,N_Time - numel(feedPress)) ];    
 
-feedFlow                = repmat(Flow,OP_change_Time/timeStep,1) * 1e-5;
+F_0                     = 5;
+feedFlow                = repmat(Flow,OP_change_Time/timeStep,1);
 feedFlow                = feedFlow(:)';
+feedFlow(1)             = F_0;
 feedFlow                = [ feedFlow, Flow(end)*ones(1,N_Time - numel(feedFlow)) ];    
 
 uu                      = [feedTemp', feedPress', feedFlow'];
@@ -205,46 +208,72 @@ end
 X_FP                    = MX(Nx,N_Time+1);
 X_FP(:,1)               = x0;
 
-sigma_T = 0.1; sigma_F = 0.1; sigma_Y = 0.03;
-JJ = 0;
 % Symbolic integration
 for j=1:N_Time
     X_FP(:,j+1)=F_FP(X_FP(:,j), [uu(j,:)'; Parameters_sym] );
-
-    Yield_estimate_RBF     = X_RBF(Nx,j);
-    Yield_estimate_FP      = X_FP(Nx,j);
-
-    S_RBF_T                = jacobian(Yield_estimate_RBF, T0homog);
-    FI_RBF_T               = (S_RBF_T * S_RBF_T');
-    
-    S_RBF_F                = jacobian(Yield_estimate_RBF, Flow);
-    FI_RBF_F               = (S_RBF_F * S_RBF_F');
-    
-    S_FP_T                 = jacobian(Yield_estimate_FP, T0homog);
-    FI_FP_T                = (S_FP_T * S_FP_T');
-    
-    S_FP_F                 = jacobian(Yield_estimate_FP, Flow);
-    FI_FP_F                = (S_FP_F * S_FP_F');
-
-    sigma_12               = sigma_Y + ( FI_RBF_T .* sigma_T^2) + (FI_RBF_F .* sigma_F^2);
-    sigma_22               = sigma_Y + ( FI_FP_T  .* sigma_T^2) + (FI_FP_F  .* sigma_F^2);
-
-    residual_sigma         = (sigma_12) - (sigma_22);
-
-    denumerator_1          = ( 1./(sigma_Y^2 + sigma_12) ) - ( 1./(sigma_Y^2 + sigma_22) );
-    denumerator_2          = ( 1./(sigma_Y^2 + sigma_12) ) + ( 1./(sigma_Y^2 + sigma_22) );
-
-    residual = ( (Yield_estimate_FP) - (Yield_estimate_RBF) )^2;
-    
-    JJ = residual_sigma/2 * denumerator_1 + residual/2 * denumerator_2;
-
 end
 
 %% Find the measurment from the simulation
-%Yield_estimate_RBF     = X_RBF(Nx,N_Sample);
-%Yield_estimate_FP      = X_FP(Nx,N_Sample);
+sigma_measurment       = 0.1;
+sigma_experimental     = 0;
+
+% Define intial guesses
+
+%T0 = linspace(30,40,numel(T0homog))+273;
+%T0 = ( (40-30).*rand(1,numel(T0homog)) + 30 )+273;
+T0 = T_0 * ones(1,numel(T0homog));
+
+%F0 = linspace(3.33,6.67,numel(Flow));
+%F0 = ( (6.67-3.33).*rand(1,numel(Flow)) + 3.33 ) ;
+F0 = F_0 * ones(1,numel(Flow));
+
+%P0 = ( (200 -100) .*rand(1,numel(Pressure)) + 100  ) ;
+
+%%
+Yield_estimate_RBF     = [X_RBF(Nx,N_Sample)];
+Yield_estimate_FP      = [X_FP(Nx,N_Sample)];
+
+%H_RBF                  = hessian(dot(Yield_estimate_RBF, Yield_estimate_RBF), [T0homog, Flow]);
+%H_FP                   = hessian(dot(Yield_estimate_FP , Yield_estimate_FP ), [T0homog, Flow]);
+
+%FI_RBF                 = sigma_experimental^2 + H_RBF./ (sigma_measurment^2);
+%FI_FP                  = sigma_experimental^2 + H_FP ./ (sigma_measurment^2);
+
+S_RBF_T                  = jacobian((Yield_estimate_RBF), [T0homog]);
+S_RBF_T_norm             = S_RBF_T *  diag(T0) ./ Yield_estimate_RBF';
+H_RBF_T                  = (S_RBF_T_norm * S_RBF_T_norm');
+FI_RBF_T                 = sigma_experimental + H_RBF_T ./ (sigma_measurment^2);
+
+S_RBF_F                  = jacobian((Yield_estimate_RBF), [Flow]);
+S_RBF_F_norm             = S_RBF_F *  diag(F0) ./ Yield_estimate_RBF';
+H_RBF_F                  = (S_RBF_F_norm * S_RBF_F_norm');
+FI_RBF_F                 = sigma_experimental + H_RBF_F ./ (sigma_measurment^2);
+
+S_FP_T                  = jacobian((Yield_estimate_FP), [T0homog]);
+S_FP_T_norm             = S_FP_T *  diag(T0) ./ Yield_estimate_FP';
+H_FP_T                  = (S_FP_T_norm * S_FP_T_norm');
+FI_FP_T                 = sigma_experimental + H_FP_T ./ (sigma_measurment^2);
+
+S_FP_F                  = jacobian((Yield_estimate_FP), [Flow]);
+S_FP_F_norm             = S_FP_F *  diag(F0) ./ Yield_estimate_FP';
+H_FP_F                  = (S_FP_F_norm * S_FP_F_norm');
+FI_FP_F                 = sigma_experimental + H_FP_F ./ (sigma_measurment^2) ;
+
+%S_FP_F                 = jacobian((Yield_estimate_FP), [Flow]);
+%FI_FP_F                = sigma_experimental + (S_RBF_F * SIGMA_measurment * S_FP_F');
+
+%sigma_12                = sigma_Y + (sum(FI_RBF_T,2) .* (sigma_T^2)) + (sum(FI_RBF_F,2) .* (sigma_F^2));
+%sigma_22                = sigma_Y + (sum(FI_FP_T ,2) .* (sigma_T^2)) + (sum(FI_FP_F ,2) .* (sigma_F^2));
+
+%residual_sigma = (sigma_12) - (sigma_22);
+
+%denumerator_1 = ( 1./(sigma_Y^2 + sigma_12) ) - ( 1./(sigma_Y^2 + sigma_22) );
+%denumerator_2 = ( 1./(sigma_Y^2 + sigma_12) ) + ( 1./(sigma_Y^2 + sigma_22) );
 
 %residual = diff(Yield_estimate_FP) - diff(Yield_estimate_RBF);
+%residual              = ( diff(Yield_estimate_FP) - diff(Yield_estimate_RBF) );
+%SIGMA                 = 1./FI_RBF_T + FI_RBF_F + 1./FI_FP_T + 1./FI_FP_F;
+%JJ                    = residual * SIGMA *  residual';
 
 %ControlEffort_P = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e+0) * diff(Flow)'   ;
 %ControlEffort_T = diff(T0homog) * (diag(ones(1,numel(diff(T0homog)))) .* 1e-1) * diff(T0homog)';
@@ -257,15 +286,65 @@ end
 %nt = numel(residual);
 
 %JJ = nt * (sigma_1^2 - sigma_2^2)^2 / (2*(sigma_1^2)*(sigma_2^2)) + (sigma_1^2 + sigma_2^2)^2 / (2*sigma_1*sigma_2) * square_diff;
-JJ = -JJ;
+%JJ = -JJ;
 
-%% Defin intial guesses
-%T0 = linspace(30,40,numel(T0homog))+273;
-T0 = ( (40-30).*rand(1,numel(T0homog)) + 30 )+273;
-%F0 = linspace(3.33,6.67,numel(Flow));
-F0 = ( (6.67-3.33).*rand(1,numel(Flow)) + 3.33 ) ;
-%P0 = ( (200 -100) .*rand(1,numel(Pressure)) + 100  ) ;
+%%
 
+%{
+disp('snjkld')
+AA = Function('AA', {T0homog,Flow}, {S_FP_T_norm} );
+S_FP = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {S_RBF_T_norm} );
+S_RBF = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {FI_RBF_T} );
+CC_T = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {FI_RBF_F} );
+CC_F = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {FI_FP_T} );
+DD_T = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {FI_FP_F} );
+DD_F = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {Yield_estimate_RBF} );
+YY_RBF = full(AA(T0,F0));
+
+AA = Function('AA', {T0homog,Flow}, {Yield_estimate_FP} );
+YY_FP = full(AA(T0,F0));
+
+%%
+%DD_T = CC_T .* T0 ./YY' ./ 0.1;
+%DD_F = CC_F .* (F0) ./YY' ./0.1 ;
+
+%%
+%{\
+figure()
+subplot(2,2,1)
+imagesc(1./CC_T); colorbar; colormap turbo
+title('RBF T')
+subplot(2,2,2)
+imagesc(1./CC_F); colorbar; colormap turbo
+title('RBF F')
+
+subplot(2,2,3)
+imagesc(1./DD_T); colorbar; colormap turbo
+title('FP T')
+subplot(2,2,4)
+imagesc(1./DD_F); colorbar; colormap turbo
+title('FP F')
+
+%%
+figure()
+hold on
+plot(YY_RBF)
+plot(YY_FP)
+hold off
+
+%}
 %% Solve the optimization problem
 OPT_solver.minimize(JJ);
 OPT_solver.set_initial([T0homog, Flow], [T0, F0] );
@@ -342,7 +421,7 @@ xlabel('Time min')
 %print(figure(1),[num2str(feedPress(1)),'.png'],'-dpng', '-r500')
 %close all
 
-%{
+%%{
 subplot(4,1,4)
 hold on
 stairs([0 OP_change_P],[KOUT(2*numel(OP_change)+1:end) KOUT(numel(end))], 'LineWidth', 2)

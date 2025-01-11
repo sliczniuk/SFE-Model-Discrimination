@@ -134,14 +134,14 @@ MSE_cum_FP = []; MSE_cum_RBF = [];
 MSE_ind_FP = []; MSE_ind_RBF = [];
 STD_FP     = []; STD_RBF     = [];
 
-for ii=9:12
+for ii=5:8
     which_dataset = ii;
     
     data_org                = LabResults(6:19,which_dataset+1)';
     
     T0homog                 = LabResults(2,which_dataset+1);                    % K
     Press                   = LabResults(3,which_dataset+1) * 10;               % MPa -> bar
-    Flow                    = LabResults(4,which_dataset+1) * 1e-5 ;            % kg/s
+    Flow                    = LabResults(4,which_dataset+1);            % kg/s
     
     feedTemp                = T0homog * ones(1,length(Time_in_sec));    
     feedPress               = Press   * ones(1,length(Time_in_sec));  
@@ -206,6 +206,6 @@ ylim([0 3])
 
 set(gca,'FontSize',12)
 
-exportgraphics(figure(1), ['3.png'], "Resolution",300);
-close all
+%exportgraphics(figure(1), ['3.png'], "Resolution",300);
+%close all
 %}

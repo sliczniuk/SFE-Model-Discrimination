@@ -20,7 +20,7 @@ function [xout] = simulateSystem(varargin)
     
     tout = 1:N;
     
-    xout = zeros(Nx,N+1);  
+    xout = MX(zeros(Nx,N+1));  
     xout(:,1) = x0;
     
 %    yout = zeros(Ny,N+1);   

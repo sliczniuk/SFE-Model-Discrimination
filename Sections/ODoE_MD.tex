@@ -1,0 +1,121 @@
+\documentclass[../Article_Design_of_Experiment.tex]{subfiles}
+\graphicspath{{\subfix{../Figures/}}}
+\begin{document}
+	
+	Multiple alternative models are often proposed to describe the same physical situation. To discriminate between these models, a set of new experiments needs to be performed. Each model attempts to predict the model response $y$ as a function of the experimental conditions $\Xi$ and the model parameters $\theta$ (here, $\theta$ refers to the model parameters that describe the extraction kinetics and is a subset of the parameter space $\Theta$). What varies from model to model is the mathematical form of the function and the set of parameters involved, although some of the parameters appearing in different models may possess the same physical interpretation.
+	
+	Following the work of \citet{Box1967}, \citet{Himmelblau1970} and \citet{Bard1974} the ratio of two probability distributions can be used to indicate the measure of evidence in favor of one model over another. Consequently, $\ln\left( \frac{p_1(y)}{p_2(y)} \right)$ becomes a measure of the odds in favor of choosing hypothesis $H_1$ (i.e., that $p_1(y)$ is the true model) over hypothesis $H_2$ (i.e., that $p_2(y)$ is the true model). Alternatively, the ratio can be interpreted as the information in favor of hypothesis $H_1$ as opposed to hypothesis $H_2$. The so-called "weight of evidence" or expected information in favor of choosing $H_1$ over $H_2$ can be defined through the Kullback–Leibler divergence and is represented by:
+	
+	{\footnotesize \begin{equation} D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) = \int_{-\infty}^{\infty} p_1(y) \ln\left( \frac{p_1(y)}{p_2(y)} \right) dy \end{equation} }
+	
+	If model 1 is correct, then it is desirable to conduct an experiment $\Xi$ that is likely to confirm this, i.e., is expected to produce a larger value of $D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right)$. Conversely, if model 2 is correct, then the experiment $\Xi$ results in a larger value of $D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right)$. Both models assume normal error distributions with predicted covariance matrices $\Sigma_1$ and $\Sigma_2$, respectively:
+	
+	{\footnotesize \begin{equation} p_i(y) = \frac{1}{\sqrt{(2\pi)^{n_Y} |\Sigma_i|}} \exp\left( -\frac{1}{2} (Y - y_i)^\top \Sigma_i^{-1} (Y - y_i) \right) \end{equation} }
+	
+	where $Y$ is the observed data, $y_i$ is the predicted response from model $i$, and $n_Y$ is the number of measurements.
+	
+	In advance of performing the experiment $\Xi$, the output $Y$ is unknown, so $D_{\mathrm{KL}}$ cannot be computed directly. However, its expected value under the assumption that model 1 is correct can be calculated:
+	
+	{\footnotesize \begin{flalign} 
+			&D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) = \int_{-\infty}^{\infty} p_1(y) \ln\left( \frac{p_1(y)}{p_2(y)} \right) dy = \left\langle \ln\left( \frac{p_1(y)}{p_2(y)} \right) \right\rangle && \nonumber \\ 
+			&= \frac{1}{2} \left\langle \ln\left( \frac{|\Sigma_2|}{|\Sigma_1|} \right) - (Y - y_1)^\top \Sigma_1^{-1} (Y - y_1) + (Y - y_2)^\top \Sigma_2^{-1} (Y - y_2) \right\rangle &&
+		\end{flalign} }
+	
+	Using the properties of the multivariate normal distribution, we compute the expected values of the quadratic forms. The Kullback–Leibler divergence becomes:
+	
+	{\footnotesize \begin{equation} D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) = \frac{1}{2} \left[ \ln\left( \frac{|\Sigma_2|}{|\Sigma_1|} \right) - n_Y + \mathrm{tr}\left( \Sigma_2^{-1} \Sigma_1 \right) + (y_2 - y_1)^\top \Sigma_2^{-1} (y_2 - y_1) \right] \end{equation} }
+	
+	Similarly, we compute $D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right)$ by swapping the indices. Since it is unknown which of the models is correct, both quantities are summed to represent the objective function $j$:
+	
+	{\footnotesize 
+		\begin{equation} 
+			j = D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) + D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right) = \int_{-\infty}^{\infty} \left[ p_1(y) - p_2(y) \right] \ln\left( \frac{p_1(y)}{p_2(y)} \right) dy 
+	\end{equation} }
+	
+	The experiment to be designed is the one that maximizes $j$. A large value of $j$ can be obtained if $p_2(y)$ is much larger than $p_1(y)$, or vice versa. In either case, the outcome shows a strong preference for one model as opposed to the other. The final form of the objective function $j$ is given by:
+	
+	{\footnotesize \begin{equation} j = -n_Y + \frac{1}{2} \left[ \mathrm{tr}\left( \Sigma_1^{-1} \Sigma_2 + \Sigma_2^{-1} \Sigma_1 \right) + (y_2 - y_1)^\top \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) (y_2 - y_1) \right] \end{equation} }
+	
+	\subsection{Prediction of the Covariance Matrix}
+	
+	Assuming that a model itself is correct, there are three possible sources of inaccuracy in the predictions: errors in the estimated parameters, errors in the setting of the experimental conditions, and measurement errors. All three sources contribute to the difference between the predicted and the observed extraction yield. Usually (except in purely linear models), there will be some bias in the predicted quantities. Assuming, however, that this bias is small compared to the other errors involved, and that the errors from all sources are statistically independent, an approximation to the covariance matrix of the predicted errors can be obtained. Suppose that the three errors are denoted by $\delta \theta$, $\delta \Xi$, and $\delta y$, respectively. The observed value of $y$ will be given by:
+	
+	{\footnotesize \begin{equation} y_o = G(\Xi + \delta \Xi, \theta + \delta \theta) + \delta y \end{equation} }
+	
+	A Taylor series expansion up to linear terms yields:
+	
+	{\footnotesize \begin{equation} y_o - y_p = \frac{\partial G}{\partial \Xi} \delta \Xi + \frac{\partial G}{\partial \theta} \delta \theta + \delta y \end{equation} }
+	
+	where $y_p$ corresponds to the predicted value of $y$. The covariance matrix of the prediction error is given by:
+	
+	{\footnotesize \begin{equation} \Sigma = \left\langle (y_o - y_p)(y_o - y_p)^\top \right\rangle = \frac{\partial G}{\partial \Xi} \Sigma_\Xi \left( \frac{\partial G}{\partial \Xi} \right)^\top + \frac{\partial G}{\partial \theta} \Sigma_\theta \left( \frac{\partial G}{\partial \theta} \right)^\top + \Sigma_y \end{equation} }
+	
+	Here, $\Sigma_\Xi$, $\Sigma_\theta$, and $\Sigma_y$ are, respectively, the covariance matrices of $\delta \Xi$, $\delta \theta$, and $\delta y$. The first term on the right-hand side may be omitted if the operating conditions can be set precisely. The matrix $\Sigma_\theta$ is obtained during the parameter estimation process. The covariance $\Sigma_y$ can be estimated from the residuals or based on the inaccuracy of the measurement equipment, which might be provided by the manufacturer.
+		
+	\subsection{Problem formulation}
+	The optimization problem is solved for multiple cases of constant pressure: 100, 125, 150, 175 and 200 bar.
+	
+	{\footnotesize
+		\begin{equation}
+			\begin{aligned} 
+				&\Xi^* &= \arg &\min_{ T^{in}, F \in \Xi} -j  \\
+				&\text{subject to}
+				& \dot{x} &= G(x,t,\Theta;\Xi) \\
+				&& t_0&=0\quad~\text{min} \\
+				&& t_f&=600~\text{min} \\
+				&& T^{0} &= T^{in}(t=0) \\
+				&& P(t) & \in \{100, 125, 150, 175, 200\}~\text{bar} \\
+				%&& \dot{y} = g(x(t)) \\
+				&& 30^\circ C \leq &T^{in}(t) \leq 40^\circ C \\
+				&& 3.33 \cdot 10^{-5} \leq &F(t) \leq 6.67 \cdot 10^{-5}
+			\end{aligned} \label{EQ:Formulation}
+	\end{equation} }
+	
+	Although both models were fitted using the same dataset, they incorporate structurally different extraction kinetics, leading to distinct outputs, especially in regions not covered by the data. New experimental conditions ($\Xi^*$) are determined by identifying the set of controls that causes the greatest divergence between the models’ outputs. The next step is to conduct the experiment and compare the results with the model predictions. The model that most accurately predicts the experimental outcome is retained for further use. 
+	
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

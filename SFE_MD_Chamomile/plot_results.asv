@@ -34,6 +34,9 @@ N_exp                   = 32;
 COLORS                  = ['b','r','k','m','g'];
 COST_I   = []; COST_F   = []; GROUP    = []; Yield      = [];
 PP                      = [100, 125, 150, 175, 200];
+
+tiledlayout(9,2)
+
 %hold on
 for ii = 1:numel(PP)
     PRES = PP(ii);
@@ -53,9 +56,11 @@ for ii = 1:numel(PP)
     FlowCont = reshape(FlowCont,[],N_exp);
 
     Y_RBF    = readlines(['RBF_',num2str(PRES),'.txt']);
+    YY_RBF_0 = reshape(str2num(Y_RBF(1,:)),[],N_exp);
     YY_RBF   = reshape(str2num(Y_RBF(2,:)),[],N_exp);
 
     Y_FP     = readlines(['FP_',num2str(PRES),'.txt']);
+    YY_FP_0 = reshape(str2num(Y_FP(1,:)),[],N_exp);
     YY_FP   = reshape(str2num(Y_FP(2,:)),[],N_exp);
 
     Time     = linspace(0,600,size(TempCont,1)+1);
@@ -63,7 +68,7 @@ for ii = 1:numel(PP)
     % Plots of controls
     ind      = find( FinaCost == min(FinaCost));
     
-    %{\
+    %{
     %subplot(3,1,1)
     figure(1)
     hold on
@@ -85,40 +90,48 @@ for ii = 1:numel(PP)
     xlabel('Time min')
     %axis square
     set(gca,'FontSize',16)
-    
+    %}
     %{'
     %Yield = [Yield; Yield_Plot(PRES,TempCont(:, ind),FlowCont(:, ind))];
 
     Time     = linspace(0,600,size(YY_RBF,1));
 
-    figure(3)
-    %subplot(3,1,3)
+    %figure(3)
+    %subplot(5,1,ii)
     hold on
-    plot(Time, YY_RBF(:,ii), 'LineWidth',3, 'Color', COLORS(ii), 'LineStyle',':');
-    plot(Time, YY_FP( :,ii), 'LineWidth',3, 'Color', COLORS(ii), 'LineStyle','-');
+    plot(Time, YY_RBF(:,ii), 'LineWidth',3, 'Color', 'r', 'LineStyle',':');
+    plot(Time, YY_FP( :,ii), 'LineWidth',3, 'Color', 'r', 'LineStyle','-');
+    plot(Time, YY_RBF_0(:,ii), 'LineWidth',3, 'Color', 'b', 'LineStyle',':');
+    plot(Time, YY_FP_0( :,ii), 'LineWidth',3, 'Color', 'b', 'LineStyle','-');
     hold off
     xlabel('Time min')
     ylabel('y gram')
+    ylim([0 2.8])
     set(gca,'FontSize',16);
 
-    figure(4)
-    %subplot(3,1,3)
+    %figure(4)
+    %subplot(5,1,ii)
     hold on
-    plot(Time(1:end-1), normalize(diff(YY_RBF(:,ii))), 'LineWidth',3, 'Color', COLORS(ii),'LineStyle',':');
-    plot(Time(1:end-1), normalize(diff(YY_FP(:,ii))), 'LineWidth',3, 'Color', COLORS(ii),'LineStyle','-');
+    %plot(Time(1:end-1), diff(YY_RBF(:,ii)), 'LineWidth',3, 'Color', COLORS(ii),'LineStyle',':');
+    plot(Time(1:end-1), diff(YY_RBF(:,ii)), 'LineWidth',3, 'Color', 'r','LineStyle',':');
+    plot(Time(1:end-1), diff(YY_FP(:,ii)), 'LineWidth',3, 'Color', 'r','LineStyle','-');
+    plot(Time(1:end-1), diff(YY_RBF_0(:,ii)), 'LineWidth',3, 'Color', 'b','LineStyle',':');
+    plot(Time(1:end-1), diff(YY_FP_0(:,ii)), 'LineWidth',3, 'Color', 'b','LineStyle','-');
     hold off
     xlabel('Time min')
     ylabel('$\frac{dy}{dt}$ gram/s')
+    ylim([0 0.13])
     set(gca,'FontSize',16);
 %}
 
 end
-%exportgraphics(figure(1), ['Profiles_all.png'], "Resolution",300); close all
+%exportgraphics(figure(1), ['Profiles_T.png'], "Resolution",300); 
+%exportgraphics(figure(2), ['Profiles_F.png'], "Resolution",300); 
 
 %%
 %{\
 figure(5)
-s = scatterhist(COST_F, COST_I, 'Group', GROUP, 'Kernel', 'on', 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
+s = scatterhist(COST_F, COST_I, 'Group', GROUP, 'Kernel', 'off', 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
 %s = scatter(COST_F, COST_I, 'Group', GROUP, 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
 s(1).Children(5).MarkerFaceColor = 'b';
 s(1).Children(4).MarkerFaceColor = 'r';

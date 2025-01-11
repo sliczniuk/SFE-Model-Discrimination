@@ -8,7 +8,7 @@ function xdot = modelSFE_Corr(x, p, mask, dt)
     %% Load Paramters
     T_u           =     p{1};
     P_u           =     p{2};
-    F_u           =     p{3};
+    F_u           =     p{3} * 1e-5;
 
     parameters    =     p(4:end);
 
@@ -40,7 +40,6 @@ function xdot = modelSFE_Corr(x, p, mask, dt)
     ENTHALPY_RHO  =     x(2*nstages_index+1:3*nstages_index);
     PRESSURE      =     x(3*nstages_index+1);
 
-    %TEMP          =     Reconstruct_T_from_enthalpy(ENTHALPY_RHO, PRESSURE, parameters);
     TEMP          =     Reconstruct_T_from_enthalpy(ENTHALPY_RHO, PRESSURE, parameters);
       
     %Properties of the fluid in the extractor
@@ -69,7 +68,6 @@ function xdot = modelSFE_Corr(x, p, mask, dt)
     Sat_coe       =     Saturation_Concentration(Csolid_percentage_left, gamma, Di);        % Inverse logistic is used to control saturation. Close to saturation point, the Sat_coe goes to zero.
 
     %% BC
-    
     Cf_0          =     0;
     Cf_B          =     FLUID(nstages_index);
                                                                                             % to avoid different small mismatch of T between the inlet and inside of the extractor
@@ -106,6 +104,7 @@ function xdot = modelSFE_Corr(x, p, mask, dt)
     %re             = RBF_Function_2D_Single_Layer( Csolid_percentage_left, RE_vector, N, parameters) * 1e-3;
     %re            = RBF_Function_2D_Double_Layer_Double_Hidden( Csolid_percentage_left, RE(ind), N, parameters) * 1e-3;
     %re            = RBF_Function_3D_Single_Layer( Csolid_percentage_left, RE_vector, RHO./800, N, parameters) * 1e-3;
+    %re            = (abs(re) + re)./2;
     
     %% model
     xdot = [

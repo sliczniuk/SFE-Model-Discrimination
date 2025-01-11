@@ -7,7 +7,7 @@
 	\subsection{Governing equations} \label{CH:Governing_equations_chapter}
 	Following the work of \citet{Anderson1995}, the governing equations for a quasi-one-dimensional flow were derived. A quasi-one-dimensional flow refers to a fluid flow scenario assuming that the flow properties are uniformly distributed across any cross-section. This simplification is typically applied when the flow channel's cross-sectional area changes, such as through irregular shapes or partial filling of an extractor. According to this assumption, velocity and other flow properties change solely in the flow direction.
 	
-	As discussed by \citet{Anderson2023}, all flows are compressible, but some of them can be treated as incompressible when the Mach number is smaller than 0.3. This assumption leads to the incompressible condition: $\nabla \cdot u =0$, which is valid for constant density (strict incompressible) or varying density flow. The assumption allows for removing acoustic waves and large perturbations in density and/or temperature. In the 1-D case, the incompressibility condition becomes $\frac{du}{dz} = 0$, so the fluid velocity is constant.
+	As discussed by \citet{Anderson2023}, all flows are compressible, but some of them can be treated as incompressible since the velocities are low. This assumption leads to the incompressible condition: $\nabla \cdot u =0$, which is valid for constant density (strict incompressible) or varying density flow. The assumption allows for removing acoustic waves and large perturbations in density and/or temperature. In the 1-D case, the incompressibility condition becomes $\frac{du}{dz} = 0$, so the fluid velocity is constant along the $z-$ direction.
 	
 	The set of quasi-one-dimensional governing equations in Cartesian coordinates is described by Equations \ref{EQ: CompressibleEuler_1} - \ref{EQ: CompressibleEuler_3}:
 	
@@ -90,7 +90,7 @@
 			
 			\subsubsection{Kinetic term} \label{CH: Kinetic}
 			
-			As the solvent flows through the bed, CO$_2$ molecules diffuse into the pores and adsorb on the particle surface to form an external fluid film around the solid particles due to the solvent-solid matrix interactions. The dissolved solute diffuses from the particle's core through the solid-fluid interface, the pore and the film into the bulk. Figure \ref{fig: SFE_Mechanism} shows the mass transfer mechanism, where the mean solute concentration in the solid phase is denoted as $c_s$, and the equilibrium concentrations at the solid-fluid interface are denoted as $c_s^*$ and $c_p^*$ for the solid and fluid phases, respectively. The concentration of the solutes in the fluid phase in the centre of the pore is denoted as $c_p$. As the solute diffuses through the pore, its concentration changes and reaches $c_{pf}$ at the pore opening. Then, the solute diffuses through the film around the particle and reaches bulk concentration $c_f$. The two-film theory describes the solid-fluid interface inside the pore. The overall mass transfer coefficient can be determined from the relationship between the solute concentration in one phase and its equilibrium concentration.
+			As the solvent flows through the fixed bed, CO$_2$ molecules diffuse into the pores, adsorb on the inner surface and form a film due to solvent-solid matrix interactions. The dissolved solute diffuses from the particle's core through the solid-fluid interface, the pore and the film into the bulk. Figure \ref{fig: SFE_Mechanism} shows the mass transfer mechanism, where the mean solute concentration in the solid phase is denoted as $c_s$, and the equilibrium concentrations at the solid-fluid interface are denoted as $c_s^*$ and $c_p^*$ for the solid and fluid phases, respectively. The concentration of the solutes in the fluid phase in the centre of the pore is denoted as $c_p$. As the solute diffuses through the pore, its concentration changes, reaching $c_{pf}$ at the opening. Then, the solute diffuses through the film around the particle and reaches bulk concentration $c_f$. The two-film theory describes the solid-fluid interface inside the pore. The overall mass transfer coefficient can be determined from the relationship between the solute concentration in one phase and its equilibrium concentration.
 			
 			\begin{figure}[h!]
 				\centering
@@ -99,7 +99,7 @@
 				\label{fig: SFE_Mechanism}
 			\end{figure}
 			
-			\citet{Bulley1984} suggest a process where the driving force for extraction is given by the difference between the concentration of the solute in the bulk, $c_f$, and in the centre of the pore, $c_p^*$. The concentration $c_p^*$ is in equilibrium with $c_s$ according to the equilibrium relationship. The rate of extraction is thus $r_e\left(c_f - c^*_p(c_s)\right)$. In contrast, \citet{Reverchon1996} proposes a driving force given by the difference between $c_s$ and $c_p^*$. Concentration $c_p^*$ is determined by the equilibrium relationship with $c_f$ and the extraction rate given by Equation \ref{Model_kinetic_basic}:
+			\citet{Bulley1984} suggest a process where the driving force for extraction is given by the difference between the concentration of the solute in the bulk, $c_f$, and in the centre of the pore, $c_p^*$. The concentration $c_p^*$ is in equilibrium with $c_s$ according to the equilibrium relationship. The rate of extraction is thus $r_e\left(c_f - c^*_p(c_s)\right)$. In contrast, \citet{Reverchon1996} proposes a driving force given by the difference between $c_s$ and $c_p^*$. As given by Equation \ref{Model_kinetic_basic}, the concentration $c_p^*$ is determined by the equilibrium relationship with $c_f$:
 			
 			{\footnotesize
 				\begin{equation} \label{Model_kinetic_basic}
@@ -115,7 +115,7 @@
 					c_f^* &= k_p c_s
 			\end{align} }
 			
-			The volumetric partition coefficient $k_p$ acts as an equilibrium constant between the solute concentration in one phase and the corresponding equilibrium concentration at the solid-fluid interphase. According to \citet{Spiro2007}, $k_p$ can be expressed through the mass partition coefficient $k_m$:
+			The volumetric partition coefficient $k_p$ acts as an equilibrium constant between the solute concentration in one phase and the corresponding equilibrium concentration at the solid-fluid interphase. \citet{Spiro2007} proposed to define the mass partition coefficient $k_m$ as 
 			
 			{\footnotesize
 				\begin{align}
@@ -131,7 +131,7 @@
 			\end{equation} }
 			
 			\subfile{Saturation}
-							
+			
 			\subsubsection{Heat balance} \label{CH: heat_balance}
 			
 			The heat balance equation describe the evolution of the enthalpy in the system and it is given by Equation \ref{EQ:Enthalpy_equation}
@@ -165,10 +165,10 @@
 					\label{EQ:Enthalpy_root}
 				\end{equation}
 			}
-
-            \subsubsection{Pressure term} \label{CH: Pressure}
 			
-			As explained in Chapters \ref{CH:Governing_equations_chapter}, at Low-Mach number conditions, the thermodynamic pressure is nearly constant in space due to the small pressure wave propagation that occurs at the speed of sound. Under such conditions, the term $\partial P/\partial t$ can be approximated by a difference equation, which describes the pressure change in the whole system. The pressure $P$ in the system is considered a state variable, while the pressure in the new time-step $P_{in}$ is considered a control variable.
+			\subsubsection{Pressure term} \label{CH: Pressure}
+			
+			As explained in Chapters \ref{CH:Governing_equations_chapter}, this low velocity region, pressure is, nearly constant due to the small pressure wave propagation that occurs at the speed of sound. Under such conditions, the term $\partial P/\partial t$ can be approximated by a difference equation, describing the pressure change in the whole system. The pressure $P$ in the system is considered a state variable, while the pressure in the new time-step $P_{in}$ is considered a control variable.
 			
 			{\footnotesize
 				\begin{equation}
@@ -203,45 +203,45 @@
 			
 			The method of lines is used to transform the process model equations into a set of ODEs denoted as $G(x;\Theta)$. The backward finite difference is used to approximate the first-order derivative, while the central difference scheme approximates the second-order derivative $z$ direction. The length of the fixed bed is divided into $N_z$, i.e. equally distributed points in the $z$ direction. The state-space model after discretization is denoted as $x$ and defined as follows:
 			
-				{\footnotesize
-					\begin{align*} \label{discretization}
-						\dot{x} &= \cfrac{d x}{d t} = 
-						\begin{bmatrix}
-							\cfrac{d c_{f,1}}{d t} 	  \\
-							\vdots					  \\
-							\cfrac{d c_{f,N_z}}{d t} \\
-							\\ \hline \\
-							\cfrac{d c_{s,1}}{d t} 	  \\
-							\vdots					  \\
-							\cfrac{d c_{s,N_z}}{d t} \\
-							\\ \hline \\
-							\cfrac{d h_1}{d t} 	  \\
-							\vdots 					  \\
-							\cfrac{d h_{N_z}}{d t} \\
-							\\ \hline \\
-							\cfrac{d P}{d t} \\
-							\\ \hline \\
-							\cfrac{d y}{d t}
-						\end{bmatrix}
-						=
-						\underbrace{\begin{bmatrix}
-								G_1 \left( c_f,c_s,h; \Theta \right)\\ 
-								\vdots\\ 
-								G_{N_z} \left( c_f,c_s,h; \Theta \right)\\ 
-								\\ \hline \\ \\
-								G_{N_z+1} \left( c_f,c_s,h; \Theta \right)\\ 
-								\vdots\\
-								G_{2N_z} \left( c_f,c_s,h; \Theta \right)\\ 
-								\\ \\ \hline \\ 
-								G_{2N_z+1} \left( c_f,c_s,h; \Theta \right) \\
-								\vdots\\
-								G_{3N_z} \left( c_f,c_s,h; \Theta \right) \\ 
-								\\ \\ \hline \\
-								G_{3N_z+1} \left( c_f,c_s,h; \Theta \right) \\
-								\\ \\ \hline \\
-								G_{3N_z+2} \left( c_f,c_s,h; \Theta \right) 
-						\end{bmatrix}}_{G \left( x; \Theta \right)} 
-				\end{align*} }
+			{\footnotesize
+				\begin{align*} \label{discretization}
+					\dot{x} &= \cfrac{d x}{d t} = 
+					\begin{bmatrix}
+						\cfrac{d c_{f,1}}{d t} 	  \\
+						\vdots					  \\
+						\cfrac{d c_{f,N_z}}{d t} \\
+						\\ \hline \\
+						\cfrac{d c_{s,1}}{d t} 	  \\
+						\vdots					  \\
+						\cfrac{d c_{s,N_z}}{d t} \\
+						\\ \hline \\
+						\cfrac{d h_1}{d t} 	  \\
+						\vdots 					  \\
+						\cfrac{d h_{N_z}}{d t} \\
+						\\ \hline \\
+						\cfrac{d P}{d t} \\
+						\\ \hline \\
+						\cfrac{d y}{d t}
+					\end{bmatrix}
+					=
+					\underbrace{\begin{bmatrix}
+							G_1 \left( c_f,c_s,h; \Theta \right)\\ 
+							\vdots\\ 
+							G_{N_z} \left( c_f,c_s,h; \Theta \right)\\ 
+							\\ \hline \\ \\
+							G_{N_z+1} \left( c_f,c_s,h; \Theta \right)\\ 
+							\vdots\\
+							G_{2N_z} \left( c_f,c_s,h; \Theta \right)\\ 
+							\\ \\ \hline \\ 
+							G_{2N_z+1} \left( c_f,c_s,h; \Theta \right) \\
+							\vdots\\
+							G_{3N_z} \left( c_f,c_s,h; \Theta \right) \\ 
+							\\ \\ \hline \\
+							G_{3N_z+1} \left( c_f,c_s,h; \Theta \right) \\
+							\\ \\ \hline \\
+							G_{3N_z+2} \left( c_f,c_s,h; \Theta \right) 
+					\end{bmatrix}}_{G \left( x; \Theta \right)} 
+			\end{align*} }
 			where ${\color{black}x} \in \mathbb{R}^{N_x = 3N_z+2} $ and $\Theta \in \mathbb{R}^{N_\Theta =  N_{\theta} + N_u } $, $N_{\theta}$ is the number of parameters, $N_{u}$ is the number of control variables.
 			
 			For a derivative to be conservative, it must form a telescoping series. In other words, only the boundary terms should remain after adding all terms coming from the discretization over a grid, and the artificial interior points should be cancelled out. Discretization is applied to the conservative form of the model to ensure mass conservation.

@@ -34,6 +34,10 @@ N_exp                   = 32;
 COLORS                  = ['b','r','k','m','g'];
 COST_I   = []; COST_F   = []; GROUP    = []; Yield      = [];
 PP                      = [100, 125, 150, 175, 200];
+
+figure(3)
+tiledlayout(numel(PP),2)
+
 %hold on
 for ii = 1:numel(PP)
     PRES = PP(ii);
@@ -87,14 +91,15 @@ for ii = 1:numel(PP)
     xlabel('Time min')
     %axis square
     set(gca,'FontSize',16)
-    
+    %}
     %{'
     %Yield = [Yield; Yield_Plot(PRES,TempCont(:, ind),FlowCont(:, ind))];
 
     Time     = linspace(0,600,size(YY_RBF,1));
 
     figure(3)
-    subplot(5,1,ii)
+    %subplot(5,1,ii)
+    nexttile
     hold on
     plot(Time, YY_RBF(:,ii), 'LineWidth',3, 'Color', 'r', 'LineStyle',':');
     plot(Time, YY_FP( :,ii), 'LineWidth',3, 'Color', 'r', 'LineStyle','-');
@@ -103,10 +108,13 @@ for ii = 1:numel(PP)
     hold off
     xlabel('Time min')
     ylabel('y gram')
+    ylim([0 2.8])
+    title(['P =',num2str(round(PRES)),' bar'])
     set(gca,'FontSize',16);
 
-    figure(4)
-    subplot(5,1,ii)
+    %figure(4)
+    %subplot(5,1,ii)
+    nexttile
     hold on
     %plot(Time(1:end-1), diff(YY_RBF(:,ii)), 'LineWidth',3, 'Color', COLORS(ii),'LineStyle',':');
     plot(Time(1:end-1), diff(YY_RBF(:,ii)), 'LineWidth',3, 'Color', 'r','LineStyle',':');
@@ -116,16 +124,22 @@ for ii = 1:numel(PP)
     hold off
     xlabel('Time min')
     ylabel('$\frac{dy}{dt}$ gram/s')
+    ylim([0 0.13])
+    title(['P =',num2str(round(PRES)),' bar'])
     set(gca,'FontSize',16);
 %}
 
 end
-%exportgraphics(figure(1), ['Profiles_all.png'], "Resolution",300); close all
+exportgraphics(figure(1), ['Profiles_T.png'], "Resolution",300); 
+exportgraphics(figure(2), ['Profiles_F.png'], "Resolution",300); 
+figure(3)
+set(gcf,'PaperOrientation','portrait'); print(figure(3),['Profiles_Y.png'],'-dpng')
+%exportgraphics(figure(3), ['Profiles_Y.png'], "Resolution",300); 
 
 %%
 %{\
-figure(5)
-s = scatterhist(COST_F, COST_I, 'Group', GROUP, 'Kernel', 'on', 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
+figure(4)
+s = scatterhist(COST_F, COST_I, 'Group', GROUP, 'Kernel', 'off', 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
 %s = scatter(COST_F, COST_I, 'Group', GROUP, 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
 s(1).Children(5).MarkerFaceColor = 'b';
 s(1).Children(4).MarkerFaceColor = 'r';
@@ -139,7 +153,7 @@ ylabel('Inital value [-]');
 xlabel('Final value [-]');
 set(gca,'FontSize',10);
 
-%exportgraphics(figure(1), ['scatter.png'], "Resolution",300);
-%close all
+exportgraphics(figure(4), ['scatter.png'], "Resolution",300);
+close all
 
 %}

@@ -1,9 +1,33 @@
-\begin{thebibliography}{30}
+\begin{thebibliography}{31}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Sodeifian and Sajadian(2017)]{Sodeifian2017}
+Gholamhossein Sodeifian and Seyed~Ali Sajadian.
+\newblock Investigation of essential oil extraction and antioxidant activity of
+  echinophora platyloba dc. using supercritical carbon dioxide.
+\newblock \emph{The Journal of Supercritical Fluids}, 121:\penalty0 52--62,
+  March 2017.
+\newblock ISSN 0896-8446.
+\newblock \doi{10.1016/j.supflu.2016.11.014}.
+
+\bibitem[Reverchon et~al.(1993)Reverchon, Donsi, and Osseo]{Reverchon1993}
+E.~Reverchon, G.~Donsi, and L.S. Osseo.
+\newblock Modeling of supercritical fluid extraction from herbaceous matrices.
+\newblock \emph{Industrial {\&} Engineering Chemistry Research}, 32\penalty0
+  (11):\penalty0 2721--2726, nov 1993.
+\newblock \doi{10.1021/ie00023a039}.
+
+\bibitem[Sovova(1994)]{Sovova1994}
+H.~Sovova.
+\newblock Rate of the vegetable oil extraction with supercritical co2.
+  modelling of extraction curves.
+\newblock \emph{Chemical Engineering Science}, 49\penalty0 (3):\penalty0
+  409--414, 1994.
+\newblock \doi{10.1016/0009-2509(94)87012-8}.
 
 \bibitem[Weidner(2018)]{Weidner2018}
 Eckhard Weidner.
@@ -73,30 +97,6 @@ Gholamhossein Sodeifian, Seyed~Ali Sajadian, and Reza Derakhsheshpour.
 \newblock \emph{Journal of CO2 Utilization}, 55:\penalty0 101799, January 2022.
 \newblock ISSN 2212-9820.
 \newblock \doi{10.1016/j.jcou.2021.101799}.
-
-\bibitem[Sodeifian and Sajadian(2017)]{Sodeifian2017}
-Gholamhossein Sodeifian and Seyed~Ali Sajadian.
-\newblock Investigation of essential oil extraction and antioxidant activity of
-  echinophora platyloba dc. using supercritical carbon dioxide.
-\newblock \emph{The Journal of Supercritical Fluids}, 121:\penalty0 52--62,
-  March 2017.
-\newblock ISSN 0896-8446.
-\newblock \doi{10.1016/j.supflu.2016.11.014}.
-
-\bibitem[Reverchon et~al.(1993)Reverchon, Donsi, and Osseo]{Reverchon1993}
-E.~Reverchon, G.~Donsi, and L.S. Osseo.
-\newblock Modeling of supercritical fluid extraction from herbaceous matrices.
-\newblock \emph{Industrial {\&} Engineering Chemistry Research}, 32\penalty0
-  (11):\penalty0 2721--2726, nov 1993.
-\newblock \doi{10.1021/ie00023a039}.
-
-\bibitem[Sovova(1994)]{Sovova1994}
-H.~Sovova.
-\newblock Rate of the vegetable oil extraction with supercritical co2.
-  modelling of extraction curves.
-\newblock \emph{Chemical Engineering Science}, 49\penalty0 (3):\penalty0
-  409--414, 1994.
-\newblock \doi{10.1016/0009-2509(94)87012-8}.
 
 \bibitem[Singh et~al.(2011)Singh, Khanam, Misraand, and Srivastava]{Singh2011}
 O.~Singh, Z.~Khanam, N.~Misraand, and M.K. Srivastava.
@@ -224,6 +224,13 @@ H.~Sovova.
   2017.
 \newblock \doi{10.1016/j.supflu.2017.02.014}.
 
+\bibitem[Sliczniuk and Oinas(2024)]{Sliczniuk2024}
+Oliwer Sliczniuk and Pekka Oinas.
+\newblock Mathematical modelling of essential oil supercritical carbon dioxide
+  extraction from chamomile flowers.
+\newblock \emph{The Canadian Journal of Chemical Engineering}, 2024.
+\newblock \doi{10.1002/cjce.25557}.
+
 \bibitem[Gmehling et~al.(2019)Gmehling, Kleiber, Kolbe, and
   Rarey]{Gmehling2019}
 J.~Gmehling, M.~Kleiber, B.~Kolbe, and J.~Rarey.
@@ -247,12 +254,10 @@ David~Mautner Himmelblau.
 \newblock ISBN 047139985X.
 \newblock [by] David M. Himmelblau., Includes bibliographical references.
 
-\bibitem[Pukelsheim and Rosenberger(1993)]{Pukelsheim1993}
-Friedrich Pukelsheim and James~L. Rosenberger.
-\newblock Experimental designs for model discrimination.
-\newblock \emph{Journal of the American Statistical Association}, 88\penalty0
-  (422):\penalty0 642--649, June 1993.
-\newblock ISSN 1537-274X.
-\newblock \doi{10.1080/01621459.1993.10476317}.
+\bibitem[Bard(1974)]{Bard1974}
+Yonathan Bard.
+\newblock \emph{Nonlinear parameter estimation}.
+\newblock Acad. Press, New York [u.a.], 1974.
+\newblock ISBN 0120782502.
 
 \end{thebibliography}
