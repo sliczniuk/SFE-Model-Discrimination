@@ -19,7 +19,7 @@ LabResults              = xlsread('dataset_2.xlsx');
 
 %% Create the solver
 Iteration_max               = 15;                                         % Maximum number of iterations for optimzer
-Time_max                    = 48;                                           % Maximum time of optimization in [h]
+Time_max                    = 14;                                           % Maximum time of optimization in [h]
 
 nlp_opts                    = struct;
 %nlp_opts.ipopt.max_iter     = Iteration_max;
@@ -145,7 +145,7 @@ f_RBF                    = @(x, u) modelSFE_RBF_sensitivity(x, u, bed_mask, time
 Parameters_sym          = MX(cell2mat(Parameters));
 
 % Set operating conditions
-%{\
+%{
 OPT_solver                  = casadi.Opti();
 ocp_opts                    = {'nlp_opts', nlp_opts};
 OPT_solver.solver(             'ipopt'   , nlp_opts)
@@ -156,7 +156,7 @@ T0homog                 = OPT_solver.variable(numel(OP_change))';
 Flow                    = OPT_solver.variable(numel(OP_change))';
                           OPT_solver.subject_to( 3.33 <= Flow <= 6.67 );
 
-feedPress               = 100;               % MPa -> bar
+feedPress               = 150;               % MPa -> bar
 
 %Pressure                = OPT_solver.variable(numel(OP_change_P))';
 %                          OPT_solver.subject_to( 100 <= Pressure <= 200 );
@@ -179,16 +179,16 @@ feedFlow                = feedFlow(:)';
 feedFlow                = [ feedFlow, Flow(end)*ones(1,N_Time - numel(feedFlow)) ];    
 %}
 %T0homog                 = 35+273;                    % K
-%feedPress               = 150;                       % bar
-%Flow                    = 5 ;                        % kg/s
+feedPress               = 150;                       % bar
+Flow                    = 5 ;                        % kg/s
 %feedTemp                = T0homog   * ones(1,length(Time_in_sec)) + 0 ;     % Kelvin
-%feedTemp                = linspace(30+273,40+273,N_Time);
-%T0homog                 = feedTemp(1)  ;
+feedTemp                = linspace(30+273,40+273,N_Time);
+T0homog                 = feedTemp(1)  ;
 
-%feedPress               = feedPress * ones(1,N_Time) + 0 ;     % Bars
+feedPress               = feedPress * ones(1,N_Time) + 0 ;     % Bars
     
 %feedFlow                = Flow * ones(1,length(Time_in_sec));               % kg/s
-%feedFlow                = linspace(3.3,6.6, N_Time);
+feedFlow                = linspace(3.3,6.6, N_Time);
 
 Z                       = Compressibility( T0homog, feedPress,         Parameters );
 rho                     = rhoPB_Comp(      T0homog, feedPress, Z,      Parameters );
@@ -221,7 +221,7 @@ x0_FP                   = [ C0fluid'                         ;
                             ];
 
 Parameters_init_time   = [uu repmat(cell2mat(Parameters),1,N_Time)'];
-[xx_R]                 = simulateSystem(F_RBF, [], x0_RBF, Parameters_init_time );
+%[xx_R]                 = simulateSystem(F_RBF, [], x0_RBF, Parameters_init_time );
 [xx_F]                 = simulateSystem(F_corr , [], x0_FP, Parameters_init_time );
 
 
@@ -234,18 +234,16 @@ Q_FP  = readmatrix('Q_FP_1.txt');
 XX_FP    = xx_F(3*nstages+2:3*nstages+3:Nx_FP,:);
 yy_FP    = XX_FP(1,:);
 S_FP     = XX_FP(2:end,:);
-FI_FP    = sigma*eye(N_Time+1) + (S_FP' * pinv(Q_FP./sigma) * S_FP);
-SIGMA_FP = inv(FI_FP);
 
-%{\
+%{
 XX_RBF   = xx_R(3*nstages+2:3*nstages+3:Nx_RBF,:);
 yy_RBF   = XX_RBF(1,:);
 S_RBF    = XX_RBF(2:end,:);
-FI_RBF   = sigma*eye(N_Time+1) + (S_RBF' * pinv(Q_RBF./sigma) * S_RBF);
+FI_RBF   = 0*eye(N_Time+1) + (S_RBF' * pinv(Q_RBF./sigma) * S_RBF);
 SIGMA_RBF = inv(FI_RBF);
 
-%subplot(2,2,1);imagesc(FI_RBF);colorbar;subplot(2,2,2);imagesc(FI_FP); colorbar
-%subplot(2,2,3);imagesc(SIGMA_RBF);colorbar;subplot(2,2,4);imagesc(SIGMA_FP);colorbar
+%subplot(2,2,1);imagesc(FI_RBF);subplot(2,2,2);imagesc(FI_FP);
+%subplot(2,2,3);imagesc(SIGMA_RBF);subplot(2,2,4);imagesc(SIGMA_FP);
 
 %{\
 residuals            = yy_RBF - yy_FP;

@@ -146,9 +146,9 @@ Parameters_sym          = MX(cell2mat(Parameters));
 
 % Set operating conditions
 
-OPT_solver                  = casadi.Opti();
-ocp_opts                    = {'nlp_opts', nlp_opts};
-OPT_solver.solver(             'ipopt'   , nlp_opts)
+OPT_solver              = casadi.Opti();
+ocp_opts                = {'nlp_opts', nlp_opts};
+OPT_solver.solver(         'ipopt'   , nlp_opts)
 
 T0homog                 = OPT_solver.variable(numel(OP_change))';
                           OPT_solver.subject_to( 30+273 <= T0homog <= 40+273 );

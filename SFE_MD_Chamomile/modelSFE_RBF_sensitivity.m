@@ -42,7 +42,8 @@ function Sdot = modelSFE_RBF_sensitivity(X, p, mask, dt)
     ENTHALPY_RHO  =     x(2*nstages_index+1:3*nstages_index);
     PRESSURE      =     x(3*nstages_index+1);
 
-    TEMP          =     Reconstruct_T_from_enthalpy(ENTHALPY_RHO, PRESSURE, parameters);
+    %TEMP          =     Reconstruct_T_from_enthalpy(ENTHALPY_RHO, PRESSURE, parameters);
+    TEMP          =     reconstruct_T_polynomial_approximation(log(-ENTHALPY_RHO), PRESSURE);
       
     %Properties of the fluid in the extractor
     Z             =     Compressibility(TEMP, PRESSURE,    parameters);
