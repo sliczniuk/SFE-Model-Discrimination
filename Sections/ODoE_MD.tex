@@ -8,7 +8,7 @@
 	
 	{\footnotesize \begin{equation} D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) = \int_{-\infty}^{\infty} p_1(y) \ln\left( \frac{p_1(y)}{p_2(y)} \right) dy \end{equation} }
 	
-	If model 1 is correct, then it is desirable to conduct an experiment $\Xi$ that is likely to confirm this, i.e., is expected to produce a larger value of $D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right)$. Conversely, if model 2 is correct, then the experiment $\Xi$ results in a larger value of $D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right)$. Both models assume normal error distributions with predicted covariance matrices $\Sigma_1$ and $\Sigma_2$, respectively:
+	In essence, $D_{\mathrm{KL}}(p_1(y)|p_2(y))$ measures how sharply data drawn from $p_1$ would differ from data drawn from $p_2$. If $D_{\mathrm{KL}}(p_1(y)|p_2(y))$ is large, then it is relatively unlikely that observations coming from $p_1$ would be mistaken for those coming from $p_2$. Conversely, $D_{\mathrm{KL}}(p_2(y)|p_1(y))$ quantifies how "hard" it would be to confuse data from $p_2$ with those fro, $p_1$. One can view these divergences as asymmetric measures of the distance between two probability distributions. If model 1 is correct, then it is desirable to conduct an experiment $\Xi$ that is likely to confirm this, i.e., is expected to produce a larger value of $D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right)$. Conversely, if model 2 is correct, then the experiment $\Xi$ results in a larger value of $D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right)$. Both models assume normal error distributions with predicted covariance matrices $\Sigma_1$ and $\Sigma_2$, respectively:
 	
 	{\footnotesize \begin{equation} p_i(y) = \frac{1}{\sqrt{(2\pi)^{n_Y} |\Sigma_i|}} \exp\left( -\frac{1}{2} (Y - y_i)^\top \Sigma_i^{-1} (Y - y_i) \right) \end{equation} }
 	
@@ -25,32 +25,42 @@
 	
 	{\footnotesize \begin{equation} D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) = \frac{1}{2} \left[ \ln\left( \frac{|\Sigma_2|}{|\Sigma_1|} \right) - n_Y + \mathrm{tr}\left( \Sigma_2^{-1} \Sigma_1 \right) + (y_2 - y_1)^\top \Sigma_2^{-1} (y_2 - y_1) \right] \end{equation} }
 	
-	Similarly, we compute $D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right)$ by swapping the indices. Since it is unknown which of the models is correct, both quantities are summed to represent the objective function $j$:
+	Physically, the term $\ln\left( \frac{|\Sigma_2|}{|\Sigma_1|} \right)$ compares how "wide" the two models’ predicted variances are overall. The $-n_Y$ arises from normalizing constants and can be seen as a base difference between two $n_Y$‐dimensional Gaussians. The trace term $\mathrm{tr}\left( \Sigma_2^{-1} \Sigma_1 \right)$ measures the mismatch between the shapes of the covariance ellipsoids (how elongated or compressed one distribution is relative to the other). The Mahalanobis distance $(y_2 - y_1)^\top \Sigma_2^{-1} (y_2 - y_1)$ measures how far apart the two mean predictions are, scaled by the covariance $\Sigma_2$.
+	
+	Similarly, by interchanging the roles of 1 and 2, the analogous expression can be computed $D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right)$ by swapping the indices. Since it is unknown which of the models is correct, both quantities are summed to represent the objective function $j$:
 	
 	{\footnotesize 
 		\begin{equation} 
 			j = D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) + D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right) = \int_{-\infty}^{\infty} \left[ p_1(y) - p_2(y) \right] \ln\left( \frac{p_1(y)}{p_2(y)} \right) dy 
 	\end{equation} }
 	
-	The experiment to be designed is the one that maximizes $j$. A large value of $j$ can be obtained if $p_2(y)$ is much larger than $p_1(y)$, or vice versa. In either case, the outcome shows a strong preference for one model as opposed to the other. The final form of the objective function $j$ is given by:
+	The experiment to be designed is the one that maximizes $j$. A large value of $j$ can be obtained if $p_2(y)$ is much than $p_1(y)$, or vice versa. In either case, the outcome shows a strong preference for one model as opposed to the other. The final form of the objective function $j$ is given by:
 	
 	{\footnotesize \begin{equation} j = -n_Y + \frac{1}{2} \left[ \mathrm{tr}\left( \Sigma_1^{-1} \Sigma_2 + \Sigma_2^{-1} \Sigma_1 \right) + (y_2 - y_1)^\top \left( \Sigma_1^{-1} + \Sigma_2^{-1} \right) (y_2 - y_1) \right] \end{equation} }
 	
+	$\Sigma_1$ and $\Sigma_2$ as expressing the expected uncertainties or noise structures inherent in each model. The trace terms reflect how dissimilar the predicted noise covariances are, while the quadratic form indicates how far apart the two predicted mean responses lie in light of those covariances. Since one aims to design an experiment so that data sampled from the correct model would strongly disfavour the incorrect one, maximizing jj ensures that, irrespective of which model is actually correct, the measured data will most likely provide a clear discrimination between the two physical hypotheses.
+	
 	\subsection{Prediction of the Covariance Matrix}
 	
-	Assuming that a model itself is correct, there are three possible sources of inaccuracy in the predictions: errors in the estimated parameters, errors in the setting of the experimental conditions, and measurement errors. All three sources contribute to the difference between the predicted and the observed extraction yield. Usually (except in purely linear models), there will be some bias in the predicted quantities. Assuming, however, that this bias is small compared to the other errors involved, and that the errors from all sources are statistically independent, an approximation to the covariance matrix of the predicted errors can be obtained. Suppose that the three errors are denoted by $\delta \theta$, $\delta \Xi$, and $\delta y$, respectively. The observed value of $y$ will be given by:
+	When using a particular model to predict an extraction yield, three distinct sources of inaccuracy typically arise: uncertainties in the estimated parameters, uncertainties in setting the experimental conditions, and measurement noise. Even if the functional form of the model itself is correct, these errors collectively produce deviations between the actual (observed) and the predicted extraction yields. In practice, there is often a small residual bias in the model’s mean predictions; however, if this bias is negligible relative to the overall variability, it can be ignored in favor of a purely variance‐based analysis. Under the additional assumption that these three error sources are statistically independent, the corresponding variances and covariances can be superimposed to give an approximate covariance matrix for the total prediction error.
+	
+	To frame this more concretely, consider the model output $y=G(\Xi, \theta)$ as the predicted extraction yield, where $\Xi$ represents the operating conditions (such as temperature, pressure, or solvent flow rates) and $\theta$ denotes the estimated model parameters. Let $\delta \theta$, $\delta \Xi$, and $\delta y$ be the random errors associated with each of these three sources. In that case, the observed yield $y_o$ can be written as
 	
 	{\footnotesize \begin{equation} y_o = G(\Xi + \delta \Xi, \theta + \delta \theta) + \delta y \end{equation} }
 	
-	A Taylor series expansion up to linear terms yields:
+	Here, $\delta \Xi$ captures potential deviations in how precisely the experimental conditions are implemented (for instance, if the actual temperature differs slightly from the nominal set point), $\delta \theta$ accounts for inaccuracies or uncertainties in the estimated model parameters, and $\delta y$ represents measurement noise associated with the apparatus or measurement sensor.
+	
+	A Taylor series expansion up to linear terms with respect to $\theta$ and $\Xi$ results with:
 	
 	{\footnotesize \begin{equation} y_o - y_p = \frac{\partial G}{\partial \Xi} \delta \Xi + \frac{\partial G}{\partial \theta} \delta \theta + \delta y \end{equation} }
 	
-	where $y_p$ corresponds to the predicted value of $y$. The covariance matrix of the prediction error is given by:
+	where $y_p=G(\Xi, \theta)$ is the model’s prediction at the nominal operating conditions and estimated parameters. Physically, each partial derivative represents a sensitivity measure: it shows how the yield changes locally if the experimental conditions or the model parameters are perturbed. The product of this sensitivity with the corresponding random error, $\delta \theta$ or $\delta \Xi$, reflects how much each type of uncertainty is expected to shift the yield away from its nominal prediction. 
 	
 	{\footnotesize \begin{equation} \Sigma = \left\langle (y_o - y_p)(y_o - y_p)^\top \right\rangle = \frac{\partial G}{\partial \Xi} \Sigma_\Xi \left( \frac{\partial G}{\partial \Xi} \right)^\top + \frac{\partial G}{\partial \theta} \Sigma_\theta \left( \frac{\partial G}{\partial \theta} \right)^\top + \Sigma_y \end{equation} }
 	
-	Here, $\Sigma_\Xi$, $\Sigma_\theta$, and $\Sigma_y$ are, respectively, the covariance matrices of $\delta \Xi$, $\delta \theta$, and $\delta y$. The first term on the right-hand side may be omitted if the operating conditions can be set precisely. The matrix $\Sigma_\theta$ is obtained during the parameter estimation process. The covariance $\Sigma_y$ can be estimated from the residuals or based on the inaccuracy of the measurement equipment, which might be provided by the manufacturer.
+	The first term describes the additional uncertainty introduced if the experimental conditions themselves cannot be fixed exactly; it may be dropped if conditions (for example, temperature or flow rate) are perfectly controlled or have negligible variation. The second term quantifies how parameter uncertainty, arising from imperfect fitting of kinetic or equilibrium constants, propagates into the final yield predictions. The third term, reflects random noise in measuring or detecting the yield. This might stem from instrument imprecision or environmental factors, and can be estimated either by looking at residuals from previous calibration measurements or by using specifications provided by the instrument manufacturer.
+	
+	If the parameters $\theta$ are being estimated in a statistically efficient way (for instance, by a maximum‐likelihood method with large‐sample properties), then $\Sigma \theta$ often approaches the inverse of the Fisher information, thereby saturating the Cramér–Rao lower bound asymptotically.
 		
 	\subsection{Problem formulation}
 	The optimization problem is solved for multiple cases of constant pressure: 100, 125, 150, 175 and 200 bar.
