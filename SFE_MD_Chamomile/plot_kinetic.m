@@ -69,16 +69,16 @@ for kk=1:size(MM,1)
     %figure(1)
     %subplot(size(MM,1),2,indx(kk))
     nexttile
-    p = pcolor(RE, Csolid_percentage_left, re_RBF);
+    p = pcolor(FF, Csolid_percentage_left, re_RBF);
     shading interp; 
     hold on
-    contour(RE, Csolid_percentage_left, re_RBF, 'k', 'LineWidth', 1, 'ShowText','on', 'LevelList', -1:0.01:0 );
+    contour(FF, Csolid_percentage_left, re_RBF, 'k', 'LineWidth', 1, 'ShowText','on', 'LevelList', -1:0.01:0 );
     hold off
     title(['T = ',num2str(round(T-273)),' $^\circ C$, P =',num2str(round(P)),' bar,  $\rho_f$=',num2str(round(rho)),'~$kg/m^3$'])
     colorbar
     colormap jet
     %caxis([0 4]);
-    xlabel('Re')
+    xlabel('F [kg/s]')
     ylabel(['$1-\frac{c_s}{c_{s0}}$'])
     axis tight
     set(gca,'FontSize',10)
@@ -87,16 +87,16 @@ for kk=1:size(MM,1)
     %figure(2)
     %subplot(size(MM,1),2,indy(kk))
     nexttile
-    p = pcolor(RE, Csolid_percentage_left, re_FB);
+    p = pcolor(FF, Csolid_percentage_left, re_FB);
     shading interp; 
     hold on
-    contour(RE, Csolid_percentage_left, re_FB, 'k', 'LineWidth', 1, 'ShowText','on', 'LevelList', -1:0.01:0 );
+    contour(FF, Csolid_percentage_left, re_FB, 'k', 'LineWidth', 1, 'ShowText','on', 'LevelList', -1:0.01:0 );
     hold off
     title(['T = ',num2str(round(T-273)),' $^\circ C$, P =',num2str(round(P)),' bar,  $\rho_f$=',num2str(round(rho)),'~$kg/m^3$'])
     colorbar
     colormap jet
     %caxis([0 4]);
-    xlabel('Re')
+    xlabel('F [kg/s]')
     ylabel(['$1-\frac{c_s}{c_{s0}}$'])
     axis tight
     set(gca,'FontSize',10)
@@ -105,4 +105,5 @@ for kk=1:size(MM,1)
 
 end
 
-%}
+%%
+annotation('textbox', [0.213962962962963 0.94342762063228 0.138814814814815 0.0210759844703273],'String','RBF-based kinetic','FitBoxToText','on', 'EdgeColor','None');
