@@ -1,23 +1,33 @@
-function [Y_RBF,Y_FP] = MD(N,P)
+%function [] = MD(P, N_exp, N_core)
+P = 100;
+N_exp = 4; 
+N_core = 4;
+    %initParPool
+
     %addpath('C:\Dev\casadi-3.6.3-windows64-matlab2018b');
     addpath('\\home.org.aalto.fi\sliczno1\data\Documents\casadi-3.6.3-windows64-matlab2018b');
+    %addpath('casadi_folder')
     import casadi.*
 
+    %% Create the solver
+    %Iteration_max               = 80;                                         % Maximum number of iterations for optimzer
+    Time_max                    = 3;                                         % Maximum time of optimization in [h]
+    
+    nlp_opts                    = struct;
+    %nlp_opts.ipopt.max_iter     = Iteration_max;
+    nlp_opts.ipopt.max_cpu_time = Time_max*3600;
+    nlp_opts.ipopt.hessian_approximation ='limited-memory';
+    
     %%
     Parameters_table        = readtable('Parameters.csv') ;                     % Table with prameters
     Parameters              = num2cell(Parameters_table{:,3});                  % Parameters within the model + (m_max), m_ratio, sigma
     
     LabResults              = xlsread('dataset_2.xlsx');
-    %N                       = 5;
     
-    %% Create the solver
-    Iteration_max               = 2;                                         % Maximum number of iterations for optimzer
-    Time_max                    = 3;                                           % Maximum time of optimization in [h]
+    sigma                   = 3e-3;
     
-    nlp_opts                    = struct;
-    nlp_opts.ipopt.max_iter     = Iteration_max;
-    nlp_opts.ipopt.max_cpu_time = Time_max*3600;
-    nlp_opts.ipopt.hessian_approximation ='limited-memory';
+    Q_RBF                   = readmatrix('Q_RBF_1.txt');
+    Q_FP                    = readmatrix('Q_FP_1.txt');
     
     %% Load paramters
     m_total                 = 3.0;
@@ -30,9 +40,8 @@ function [Y_RBF,Y_FP] = MD(N,P)
     PreparationTime         = 0;
     ExtractionTime          = 600;
     timeStep                = 5;                                                % Minutes
-    OP_change_Time          = 10; 
-    %OP_change_Time_P        = 100; 
-    Sample_Time             = 5;
+    OP_change_Time          = 20; 
+    Sample_Time             = 10;
     
     simulationTime          = PreparationTime + ExtractionTime;
     
@@ -42,11 +51,9 @@ function [Y_RBF,Y_FP] = MD(N,P)
     
     N_Time                  = length(Time_in_sec);
     
-    %SAMPLE                  = LabResults(6:19,1);
     SAMPLE                  = Sample_Time:Sample_Time:ExtractionTime;
     
-    OP_change               = OP_change_Time:OP_change_Time:ExtractionTime;
-    %OP_change_P             = OP_change_Time_P:OP_change_Time_P:ExtractionTime;
+    OP_change               = 0:OP_change_Time:ExtractionTime-OP_change_Time;
     
     % Check if the number of data points is the same for both the dataset and the simulation
     N_Sample                = [];
@@ -70,12 +77,14 @@ function [Y_RBF,Y_FP] = MD(N,P)
     bed_mask(nstagesafter)  = 0;
     
     %% Number of variables
-    Nx                      = 3 * nstages+2;                                    % 3*Nstages(C_f, C_s, H) + P(t) + yield
+    Nx_RBF                  = (1+36)*(3 * nstages+3);                           % 3*Nstages(C_f, C_s, H) + P(t) + yield
+    Nx_FP                   = (1+6)*(3 * nstages+3);                            % 3*Nstages(C_f, C_s, H) + P(t) + yield
     Nu                      = 3 + numel( Parameters );                          % T_in, P, F + numel(Parameters)
     
     %% Extractor geometry
     r                       = Parameters{3};                                    % Radius of the extractor  [m]
     epsi                    = Parameters{4};                                    % Fullness [-]
+    dp                      = Parameters{5};                                    % Paritcle diameter
     L                       = Parameters{6};                                    % Total length of the extractor [m]
     
     L_nstages               = linspace(0,L,nstages);
@@ -106,7 +115,8 @@ function [Y_RBF,Y_FP] = MD(N,P)
     L_end                   = L_bed_after_nstages(end);
     
     %% symbolic variables
-    x                       = MX.sym('x', Nx);
+    x_RBF                   = MX.sym('x', Nx_RBF);
+    x_FP                    = MX.sym('x', Nx_FP);
     u                       = MX.sym('u', Nu);
     
     %% Set inital state and inital conditions
@@ -126,20 +136,18 @@ function [Y_RBF,Y_FP] = MD(N,P)
     C0fluid                 = m_fluid * 1e-3 ./ V_fluid';
     
     %% Set Integrator - RBF
-    f_RBF                   = @(x, u) modelSFE_RBF(x, u, bed_mask, timeStep_in_sec, N);
-    % Integrator
-    F_RBF                   = buildIntegrator(f_RBF, [Nx,Nu] , timeStep_in_sec);
+    f_corr                   = @(x, u) modelSFE_Corr_sensitivity(x, u, bed_mask, timeStep_in_sec);
+    f_RBF                    = @(x, u) modelSFE_RBF_sensitivity(x, u, bed_mask, timeStep_in_sec);
     
-    %% Set Integrator - FP
-    f_FP                    = @(x, u) modelSFE_Corr(x, u, bed_mask, timeStep_in_sec);
     % Integrator
-    F_FP                    = buildIntegrator(f_FP, [Nx,Nu] , timeStep_in_sec);
+    [F_corr]                 = buildIntegrator(f_corr, [Nx_FP,Nu] , timeStep_in_sec);
+    [F_RBF]                  = buildIntegrator(f_RBF, [Nx_RBF,Nu] , timeStep_in_sec);
     
     %%
+    %theta                   = MX.sym('theta', size(Parameters));
     Parameters_sym          = MX(cell2mat(Parameters));
     
     % Set operating conditions
-    
     OPT_solver                  = casadi.Opti();
     ocp_opts                    = {'nlp_opts', nlp_opts};
     OPT_solver.solver(             'ipopt'   , nlp_opts)
@@ -151,117 +159,118 @@ function [Y_RBF,Y_FP] = MD(N,P)
                               OPT_solver.subject_to( 3.33 <= Flow <= 6.67 );
     
     feedPress               = P;               % MPa -> bar
-    
+     
     feedTemp                = repmat(T0homog,OP_change_Time/timeStep,1);
     feedTemp                = feedTemp(:)';
-    feedTemp                = [ feedTemp, T0homog(end)*ones(1,N_Time - numel(feedTemp)) ];    
-    T_0                     = feedTemp(1);   
+    feedTemp                = [ feedTemp, T0homog(end)*ones(1,N_Time - numel(feedTemp)) ];   
     
-    feedPress               = feedPress * ones(1,length(Time_in_sec)) + 0 ;     % Bars
-    %feedPress                = repmat(Pressure,OP_change_Time_P/timeStep,1);
-    %feedPress                = feedPress(:)';
-    %feedPress                = [ feedPress, Pressure(end)*ones(1,N_Time - numel(feedPress)) ];    
+    feedPress               = feedPress * ones(1,numel(feedTemp)) + 0 ;     % Bars
     
-    feedFlow                = repmat(Flow,OP_change_Time/timeStep,1) * 1e-5;
+    F_0                     = 5;
+    feedFlow                = repmat(Flow,OP_change_Time/timeStep,1);
     feedFlow                = feedFlow(:)';
     feedFlow                = [ feedFlow, Flow(end)*ones(1,N_Time - numel(feedFlow)) ];    
     
+    Z                       = Compressibility( T0homog, feedPress,         Parameters );
+    rho                     = rhoPB_Comp(      T0homog, feedPress, Z,      Parameters );
+        
+    enthalpy_rho            = rho.*SpecificEnthalpy(T0homog, feedPress, Z, rho, Parameters );
+    
     uu                      = [feedTemp', feedPress', feedFlow'];
     
-    Z                       = Compressibility( T_0, feedPress(1),         Parameters );
-    rho                     = rhoPB_Comp(      T_0, feedPress(1), Z,      Parameters );
-    enthalpy_rho            = rho.*SpecificEnthalpy(T_0, feedPress(1), Z, rho, Parameters ) ;
+    Z                       = Compressibility(      feedTemp(1), feedPress(1),         Parameters );
+    rho                     = rhoPB_Comp(           feedTemp(1), feedPress(1), Z,      Parameters );
+    enthalpy_rho            = rho.*SpecificEnthalpy(feedTemp(1), feedPress(1), Z, rho, Parameters ) ;
     
     % Initial conditions
-    x0                      = [ C0fluid'                         ;
+    x0_RBF                  = [ C0fluid'                         ;
                                 C0solid         * bed_mask       ;
                                 enthalpy_rho    * ones(nstages,1);
                                 feedPress(1)                     ;
                                 0                                ;
+                                0                                ;
+                                zeros(Nx_RBF - (3*nstages+3), 1) ;
                                 ];
     
-    X_RBF                   = MX(Nx,N_Time+1);
-    X_RBF(:,1)              = x0;
+    x0_FP                   = [ C0fluid'                         ;
+                                C0solid         * bed_mask       ;
+                                enthalpy_rho    * ones(nstages,1);
+                                feedPress(1)                     ;
+                                0                                ;
+                                0                                ;
+                                zeros(Nx_FP  - (3*nstages+3), 1) ;
+                                ];
     
-    % Symbolic integration
-    for j=1:N_Time
-        X_RBF(:,j+1)=F_RBF(X_RBF(:,j), [uu(j,:)'; Parameters_sym] );
-    end
+    Parameters_init_time   = [uu repmat(cell2mat(Parameters),1,N_Time)'];
+    [xx_R]                 = simulateSystem(F_RBF, [], x0_RBF, Parameters_init_time );
+    [xx_F]                 = simulateSystem(F_corr , [], x0_FP, Parameters_init_time );
     
-    X_FP                    = MX(Nx,N_Time+1);
-    X_FP(:,1)               = x0;
     
-    % Symbolic integration
-    for j=1:N_Time
-        X_FP(:,j+1)=F_FP(X_FP(:,j), [uu(j,:)'; Parameters_sym] );
-    end
+    %%
     
-    %% Find the measurment from the simulation
-    Yield_estimate_RBF     = X_RBF(Nx,N_Sample);
-    Yield_estimate_FP      = X_FP(Nx,N_Sample);
+    XX_FP     = xx_F(3*nstages+2:3*nstages+3:Nx_FP,:);
+    yy_FP     = XX_FP(1,N_Sample);
+    S_FP      = XX_FP(2:end,N_Sample);
+    FI_FP     = sigma*eye(length(N_Sample)) + (S_FP' * pinv(Q_FP./sigma) * S_FP);
+    SIGMA_FP  = inv(FI_FP);
     
-    %residual = diff(Yield_estimate_FP) - diff(Yield_estimate_RBF);
-    residual = (Yield_estimate_FP) - (Yield_estimate_RBF);
+    %{\
+    XX_RBF    = xx_R(3*nstages+2:3*nstages+3:Nx_RBF,:);
+    yy_RBF    = XX_RBF(1,N_Sample);
+    S_RBF     = XX_RBF(2:end,N_Sample);
+    FI_RBF    = sigma*eye(length(N_Sample)) + (S_RBF' * pinv(Q_RBF./sigma) * S_RBF);
+    SIGMA_RBF = inv(FI_RBF);
     
-    ControlEffort_P = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e+0) * diff(Flow)'   ;
+    residuals = yy_RBF - yy_FP;
+    
+    JJ_1      = trace(FI_FP * SIGMA_RBF + FI_RBF * SIGMA_FP - 2*eye(size(FI_FP)));
+    JJ_2      = residuals * [SIGMA_RBF + SIGMA_FP] * residuals';
+    
+    %%
+    T0 = ( (40-30).*rand(1,numel(T0homog)*N_exp) + 30 )+273;
+    F0 = ( (3.33-6.67).*rand(1,numel(Flow)*N_exp) + 3.33 );
+	
+	JJ = -(JJ_1 + JJ_2);
+    
+    ControlEffort_F = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e-0) * diff(Flow)'   ;
     ControlEffort_T = diff(T0homog) * (diag(ones(1,numel(diff(T0homog)))) .* 1e-1) * diff(T0homog)';
     
-    square_diff = (residual * residual');% - ControlEffort_P - ControlEffort_T;
-    
-    sigma_1 = 0.03;
-    sigma_2 = 0.0308;
-    
-    nt = numel(residual);
-    
-    %JJ = nt * (sigma_1^2 - sigma_2^2)^2 / (2*(sigma_1^2)*(sigma_2^2)) + (sigma_1^2 + sigma_2^2)^2 / (2*sigma_1*sigma_2) * square_diff;
-    JJ = -square_diff;
-    
-    %% Defin intial guesses
-    %T0 = linspace(30,40,numel(T0homog))+273;
-    T0 = ( (40-30).*rand(1,numel(T0homog)*4) + 30 ) + 273;
-    %F0 = linspace(3.33,6.67,numel(Flow));
-    F0 = ( (6.67-3.33).*rand(1,numel(Flow)*4) + 3.33 );
-    %P0 = ( (200 -100) .*rand(1,numel(Pressure)) + 100  ) ;
-    
+    JJ = JJ + ControlEffort_T + ControlEffort_F;
+
     %% Solve the optimization problem
     OPT_solver.minimize(JJ);
 
-    H = OPT_solver.to_function('H',{T0homog,Flow},{T0homog,Flow});
+    H = OPT_solver.to_function('H',{T0homog,Flow},{JJ,T0homog,Flow});
     
-    %parpool()
-    H_map = H.map(4,'thread',4);
-    [HH_1, HH_2] = H_map(T0, F0);
+    parpool()
+    H_map = H.map(N_exp,'thread',N_core);
+    [HH_1, HH_, HH_3] = H_map(T0, F0);
 
-    HH_1 = full(HH_1);
+    COST = full(HH_1);
     HH_2 = full(HH_2);
-
+    HH_3 = full(HH_3);
+	
+	%tic
     GG      = Function('GG',{T0homog,Flow}, {JJ} );
-    COST_0  = full(GG(T0, F0 ))
-    COST    = full(GG(HH_1, HH_2 ))
+    COST_0  = full(GG(T0, F0 ));
     
-    FY_RBF  = Function('FY_RBF',{T0homog, Flow},{X_RBF(end,:)});
+    FY_RBF  = Function('FY_RBF',{T0homog, Flow}, {XX_RBF(1,:)} );
     Y_RBF_0 = full(FY_RBF(T0, F0));
     Y_RBF   = full(FY_RBF(HH_1,HH_2));
 
-    FY_FP   = Function('FY_FP',{T0homog, Flow},{X_FP(end,:)});
+    FY_FP   = Function('FY_FP',{T0homog, Flow}, {XX_FP(1,:)} );
     Y_FP_0  = full(FY_FP(T0, F0));
     Y_FP    = full(FY_FP(HH_1, HH_2));
-
-    writematrix([COST_0; COST], ['COST_',num2str(feedPress(1)),'.txt'])
-    writematrix([HH_map_1; HH_map_2], ['CONTROL_',num2str(feedPress(1)),'.txt'])
-    writematrix([Y_FP_0; Y_FP], ['FP_',num2str(feedPress(1)),'.txt'])
-    writematrix([HH_map_1; HH_map_2], ['CONTROL_',num2str(feedPress(1)),'.txt'])
-        
+	toc
+	
+    writematrix([COST_0; COST]'  , ['TEST_COST_',num2str(feedPress(1)),'.txt'])
+    writematrix([reshape([HH_1],[],N_exp)]    , ['TEST_CONTROL_T_',num2str(feedPress(1)),'.txt'])
+    writematrix([reshape([HH_2],[],N_exp)]    , ['TEST_CONTROL_F_',num2str(feedPress(1)),'.txt'])
     
-    %OPT_solver.set_initial([T0homog, Flow], [T0, F0] );
-    %{
-    %%
-    try
-        sol  = OPT_solver.solve();
-        KOUT = full(sol.value([T0homog, Flow])) ;
-    catch
-        KOUT = OPT_solver.debug.value([T0homog, Flow]);
-    end
+    writematrix([reshape([Y_FP_0],N_exp,[])]  , ['TEST_FP_0_',num2str(feedPress(1)),'.txt'])
+    writematrix([reshape([Y_FP],N_exp,[])]  , ['TEST_FP_',num2str(feedPress(1)),'.txt'])
 
-    %}
-end
+    writematrix([reshape([Y_RBF_0, Y_RBF],N_exp,[])], ['TEST_RBF_',num2str(feedPress(1)),'.txt'])
+        
+	datetime
+%end

@@ -23,7 +23,7 @@ A                       = pi *      r^2;                                    % Ex
 N_exp                   = 64;
 COLORS                  = ['b','r','k','m','g'];
 COST_I   = []; COST_F   = []; GROUP    = []; Yield      = [];
-PP                      = [175];
+PP                      = [100, 125, 150, 175, 200];
 
 figure(3)
 tiledlayout(numel(PP),2)
@@ -34,25 +34,26 @@ for ii = 1:numel(PP)
     AA       = readmatrix(['COST_',num2str(PRES),'.txt']);
     
     ind      = find( AA(:,2) == max(AA(:,2)) );
-
-    InitCost = str2num(AA(1,:));
-    FinaCost = str2num(AA(2,:));
     
-    Time     = linspace(0,600,length(TempCont)+1);
+    GROUP    = [GROUP; repmat(['P = ', num2str(PRES),' bar'], numel(FinaCost),1) ];
 
     % Plots of controls
-    BB       = readmatrix(['CONTROL_',num2str(PRES),'.txt']);
+    BB_T       = readmatrix(['CONTROL_T_',num2str(PRES),'.txt']);
+    BB_T       = reshape(BB_T(:), [], N_exp);
+    BB_F       = readmatrix(['CONTROL_F_',num2str(PRES),'.txt']);
+    BB_F       = reshape(BB_F(:), [], N_exp);
 
-    TempCont = BB(ind,1:60);
-    FlowCont = BB(ind,61:end) * 1e-5;
+    TempCont = BB_T(:,ind);
+    FlowCont = BB_F(:,ind) * 1e-5;
+    Time     = linspace(0,600,length(TempCont));
 
     CC = readmatrix(['FP_',num2str(PRES),'.txt']);
-    CC = reshape(CC,[],2*N_exp);
-    Y_FP     = CC(:,N_exp+ind);
+    CC = reshape(CC(:),[],N_exp);
+    Y_FP     = CC(:,ind);
     
     DD = readmatrix(['RBF_',num2str(PRES),'.txt']);
-    DD = reshape(DD,[],2*N_exp);
-    Y_RBF     = DD(:,N_exp+ind);
+    DD = reshape(DD(:),[],N_exp);
+    Y_RBF     = DD(:,ind);
 
     
     
@@ -60,7 +61,7 @@ for ii = 1:numel(PP)
     %subplot(3,1,1)
     figure(1)
     hold on
-    stairs(Time, [TempCont(:, ind); TempCont(end,ind)]-273, 'LineWidth', 2 ,'Color',COLORS(ii));
+    stairs(Time, TempCont-273, 'LineWidth', 2 ,'Color',COLORS(ii));
     hold off
     ylabel('$T^{in}~^\circ$C')
     xlabel('Time min')
@@ -72,7 +73,7 @@ for ii = 1:numel(PP)
     figure(2)
     %subplot(3,1,2)
     hold on
-    stairs(Time, [FlowCont(:, ind); FlowCont(end,ind)], 'LineWidth', 2, 'Color',COLORS(ii));
+    stairs(Time, FlowCont, 'LineWidth', 2, 'Color',COLORS(ii));
     hold off
     ylabel('$F~kg/s$')
     xlabel('Time min')
@@ -82,14 +83,14 @@ for ii = 1:numel(PP)
     %{'
     %Yield = [Yield; Yield_Plot(PRES,TempCont(:, ind),FlowCont(:, ind))];
 
-    Time     = linspace(0,600,size(YY_FP,1));
+    Time     = linspace(0,600,size(Y_FP,1));
 
     figure(3)
     %subplot(5,1,ii)
     %nexttile
     hold on
-    %plot(Time, YY_RBF(:,ii), 'LineWidth',3, 'Color', 'r', 'LineStyle',':');
-    plot(Time, YY_FP( :,ind), 'LineWidth',3, 'Color', COLORS(ii), 'LineStyle','-');
+    plot(Time, Y_RBF, 'LineWidth',3, 'Color', COLORS(ii), 'LineStyle',':');
+    plot(Time, Y_FP, 'LineWidth',3, 'Color', COLORS(ii), 'LineStyle','-');
     %plot(Time, YY_RBF_0(:,ii), 'LineWidth',3, 'Color', 'b', 'LineStyle',':');
     %plot(Time, YY_FP_0( :,ii), 'LineWidth',3, 'Color', 'b', 'LineStyle','-');
     hold off
@@ -99,21 +100,21 @@ for ii = 1:numel(PP)
     %title(['P =',num2str(round(PRES)),' bar'])
     set(gca,'FontSize',16);
 
-    figure(4)
+    %figure(4)
     %subplot(5,1,ii)
     %nexttile
-    hold on
-    plot(Time(1:end-1), diff(YY_FP(:,ind)), 'LineWidth',3, 'Color', COLORS(ii),'LineStyle','-');
+    %hold on
+    %plot(Time(1:end-1), diff(YY_FP(:,ind)), 'LineWidth',3, 'Color', COLORS(ii),'LineStyle','-');
     %plot(Time(1:end-1), diff(YY_RBF(:,ii)), 'LineWidth',3, 'Color', 'r','LineStyle',':');
     %plot(Time(1:end-1), diff(YY_FP(:,ii)), 'LineWidth',3, 'Color', 'r','LineStyle','-');
     %plot(Time(1:end-1), diff(YY_RBF_0(:,ii)), 'LineWidth',3, 'Color', 'b','LineStyle',':');
     %plot(Time(1:end-1), diff(YY_FP_0(:,ii)), 'LineWidth',3, 'Color', 'b','LineStyle','-');
-    hold off
-    xlabel('Time min')
-    ylabel('$\frac{dy}{dt}$ gram/s')
+    %hold off
+    %xlabel('Time min')
+    %ylabel('$\frac{dy}{dt}$ gram/s')
     %ylim([0 0.13])
     %title(['P =',num2str(round(PRES)),' bar'])
-    set(gca,'FontSize',16);
+    %set(gca,'FontSize',16);
 %}
 
 end
@@ -127,13 +128,13 @@ figure(2); legend({'100 bar','125 bar','150 bar','175 bar','200 bar'}, 'Location
 figure(3); legend({'100 bar','125 bar','150 bar','175 bar','200 bar'}, 'Location', 'northwest' ); legend('boxoff')
 %exportgraphics(figure(3), ['yield.png'], "Resolution",300); 
 
-figure(4); legend({'100 bar','125 bar','150 bar','175 bar','200 bar'}, 'Location', 'northeast' ); legend('boxoff')
+%figure(4); legend({'100 bar','125 bar','150 bar','175 bar','200 bar'}, 'Location', 'northeast' ); legend('boxoff')
 %exportgraphics(figure(4), ['diff_yield.png'], "Resolution",300); 
 %}
 %%
 %{\
 figure(5)
-s = scatterhist(COST_F, COST_I, 'Group', GROUP, 'Kernel', 'on', 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
+s = scatterhist(AA, 'Group', GROUP, 'Kernel', 'on', 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
 %s = scatter(COST_F, COST_I, 'Group', GROUP, 'LineWidth',3, 'MarkerSize',6, 'Color',COLORS, 'LineStyle',{'-','-','-','-','-','-'} );
 s(1).Children(5).MarkerFaceColor = 'b';
 s(1).Children(4).MarkerFaceColor = 'r';

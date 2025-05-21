@@ -1,7 +1,9 @@
 %function [] = MD(P, N_exp, N_core)
-P = 175;
-N_exp = 2; 
-N_core = 3;
+startup; delete(gcp('nocreate'));
+
+P = 100;
+N_exp = 4; 
+N_core = 4;
     %initParPool
 
     %addpath('C:\Dev\casadi-3.6.3-windows64-matlab2018b');
@@ -10,12 +12,12 @@ N_core = 3;
     import casadi.*
 
     %% Create the solver
-    Iteration_max               = 0;                                         % Maximum number of iterations for optimzer
-    %Time_max                    = 24;                                         % Maximum time of optimization in [h]
+    %Iteration_max               = 80;                                         % Maximum number of iterations for optimzer
+    Time_max                    = 7;                                         % Maximum time of optimization in [h]
     
     nlp_opts                    = struct;
-    nlp_opts.ipopt.max_iter     = Iteration_max;
-    %nlp_opts.ipopt.max_cpu_time = Time_max*3600;
+    %nlp_opts.ipopt.max_iter     = Iteration_max;
+    nlp_opts.ipopt.max_cpu_time = Time_max*3600;
     nlp_opts.ipopt.hessian_approximation ='limited-memory';
     
     %%
@@ -38,10 +40,10 @@ N_core = 3;
     
     % Set time of the simulation
     PreparationTime         = 0;
-    ExtractionTime          = 100;
-    timeStep                = 10;                                                % Minutes
+    ExtractionTime          = 600;
+    timeStep                = 5;                                                % Minutes
     OP_change_Time          = 20; 
-    Sample_Time             = 20;
+    Sample_Time             = 10;
     
     simulationTime          = PreparationTime + ExtractionTime;
     
@@ -232,37 +234,45 @@ N_core = 3;
 	
 	JJ = -(JJ_1 + JJ_2);
     
+    ControlEffort_F = diff(Flow)    * (diag(ones(1,numel(diff(Flow))))    .* 1e-0) * diff(Flow)'   ;
+    ControlEffort_T = diff(T0homog) * (diag(ones(1,numel(diff(T0homog)))) .* 1e-1) * diff(T0homog)';
+    
+    JJ = JJ + ControlEffort_T + ControlEffort_F;
+
     %% Solve the optimization problem
     OPT_solver.minimize(JJ);
 
-    H = OPT_solver.to_function('H',{T0homog,Flow},{T0homog,Flow});
+    H = OPT_solver.to_function('H',{T0homog,Flow},{JJ,T0homog,Flow});
     
-    %parpool()
+    parpool()
     H_map = H.map(N_exp,'thread',N_core);
-    [HH_1, HH_2] = H_map(T0, F0);
+    [HH_1, HH_2, HH_3] = H_map(T0, F0);
 
-    HH_1 = full(HH_1);
+    COST = full(HH_1);
     HH_2 = full(HH_2);
+    HH_3 = full(HH_3);
 	
-	tic
+	%tic
     GG      = Function('GG',{T0homog,Flow}, {JJ} );
     COST_0  = full(GG(T0, F0 ));
-    COST    = full(GG(HH_1, HH_2 ));
     
     FY_RBF  = Function('FY_RBF',{T0homog, Flow}, {XX_RBF(1,:)} );
     Y_RBF_0 = full(FY_RBF(T0, F0));
-    Y_RBF   = full(FY_RBF(HH_1,HH_2));
+    Y_RBF   = full(FY_RBF(HH_2,HH_3));
 
     FY_FP   = Function('FY_FP',{T0homog, Flow}, {XX_FP(1,:)} );
     Y_FP_0  = full(FY_FP(T0, F0));
-    Y_FP    = full(FY_FP(HH_1, HH_2));
+    Y_FP    = full(FY_FP(HH_2, HH_3));
 	toc
 	
-    writematrix([COST_0; COST]'  , ['COST_',num2str(feedPress(1)),'.txt'])
-    writematrix([reshape([HH_1],N_exp,[])]    , ['CONTROL_T_',num2str(feedPress(1)),'.txt'])
-    writematrix([reshape([HH_2],N_exp,[])]    , ['CONTROL_F_',num2str(feedPress(1)),'.txt'])
-    writematrix([reshape([Y_FP_0, Y_FP],N_exp,[])]  , ['FP_',num2str(feedPress(1)),'.txt'])
-    writematrix([reshape([Y_RBF_0, Y_RBF],N_exp,[])], ['RBF_',num2str(feedPress(1)),'.txt'])
+    writematrix([COST_0; COST]'  , ['TEST_COST_',num2str(feedPress(1)),'.txt'])
+    writematrix([reshape([HH_1],[],N_exp)]    , ['TEST_CONTROL_T_',num2str(feedPress(1)),'.txt'])
+    writematrix([reshape([HH_2],[],N_exp)]    , ['TEST_CONTROL_F_',num2str(feedPress(1)),'.txt'])
+    
+    writematrix([reshape([Y_FP_0],N_exp,[])]  , ['TEST_FP_0_',num2str(feedPress(1)),'.txt'])
+    writematrix([reshape([Y_FP],N_exp,[])]  , ['TEST_FP_',num2str(feedPress(1)),'.txt'])
+
+    writematrix([reshape([Y_RBF_0, Y_RBF],N_exp,[])], ['TEST_RBF_',num2str(feedPress(1)),'.txt'])
         
 	datetime
 %end

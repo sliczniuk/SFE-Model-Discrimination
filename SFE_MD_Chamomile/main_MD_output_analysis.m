@@ -23,7 +23,7 @@ A                       = pi *      r^2;                                    % Ex
 N_exp                   = 64;
 COLORS                  = ['b','r','k','m','g'];
 COST_I   = []; COST_F   = []; GROUP    = []; Yield      = [];
-PP                      = [175];
+PP                      = [100, 125, 150, 175, 200];
 
 figure(3)
 tiledlayout(numel(PP),2)
@@ -33,23 +33,26 @@ for ii = 1:numel(PP)
     PRES = PP(ii);
     AA       = readmatrix(['COST_',num2str(PRES),'.txt']);
     
-    ind      = find( AA(:,2) == max(AA(:,2)) );
+    ind      = find( AA(:,2) == min(AA(:,2)) );
     
 
     % Plots of controls
-    BB       = readmatrix(['CONTROL_',num2str(PRES),'.txt']);
+    BB_T       = readmatrix(['CONTROL_T_',num2str(PRES),'.txt']);
+    BB_T       = reshape(BB_T(:), [], N_exp);
+    BB_F       = readmatrix(['CONTROL_F_',num2str(PRES),'.txt']);
+    BB_F       = reshape(BB_F(:), [], N_exp);
 
-    TempCont = BB(ind,1:60);
-    FlowCont = BB(ind,61:end) * 1e-5;
+    TempCont = BB_T(:,ind);
+    FlowCont = BB_F(:,ind) * 1e-5;
     Time     = linspace(0,600,length(TempCont));
 
     CC = readmatrix(['FP_',num2str(PRES),'.txt']);
-    CC = reshape(CC,[],2*N_exp);
-    Y_FP     = CC(:,N_exp+ind);
+    CC = reshape(CC(:),[],N_exp);
+    Y_FP     = CC(:,ind);
     
     DD = readmatrix(['RBF_',num2str(PRES),'.txt']);
-    DD = reshape(DD,[],2*N_exp);
-    Y_RBF     = DD(:,N_exp+ind);
+    DD = reshape(DD(:),[],N_exp);
+    Y_RBF     = DD(:,ind);
 
     
     
@@ -79,7 +82,7 @@ for ii = 1:numel(PP)
     %{'
     %Yield = [Yield; Yield_Plot(PRES,TempCont(:, ind),FlowCont(:, ind))];
 
-    Time     = linspace(0,600,size(YY_FP,1));
+    Time     = linspace(0,600,size(Y_FP,1));
 
     figure(3)
     %subplot(5,1,ii)
