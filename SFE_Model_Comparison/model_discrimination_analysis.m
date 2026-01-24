@@ -136,9 +136,9 @@ F_accum_power  = F_power.mapaccum('F_accum_power', N_Time);
 fprintf('=== Model Discrimination Analysis ===\n\n');
 
 % Define operating condition ranges
-T_range = linspace(303, 333, 7);      % Temperature [K] (30-60°C)
-P_range = linspace(100, 300, 9);      % Pressure [bar]
-F_range = linspace(3, 10, 6) * 1e-5;  % Flow rate [m³/s]
+T_range = linspace(303, 313, 10);      % Temperature [K] (30-60°C)
+P_range = linspace(100, 200, 10);      % Pressure [bar]
+F_range = linspace(3, 5, 10) * 1e-5;  % Flow rate [m³/s]
 
 n_T = length(T_range);
 n_P = length(P_range);
@@ -288,7 +288,7 @@ for i_F = 1:n_plots
     ylabel('Pressure [bar]');
     title(sprintf('F = %.1f g/min', F_range(i_F) * 1e5 * 60));
     set(gca, 'YDir', 'normal');
-    colormap(hot);
+    colormap(turbo);
 end
 
 sgtitle('Integrated Model Discrimination |Y_{power} - Y_{linear}| dt', 'FontSize', 14);
@@ -307,7 +307,7 @@ xlabel('Temperature [°C]');
 ylabel('Pressure [bar]');
 title(sprintf('Maximum |Y_{power} - Y_{linear}| (F = %.1f g/min)', F_range(i_F_mid) * 1e5 * 60));
 set(gca, 'YDir', 'normal');
-colormap(hot);
+colormap(turbo);
 
 subplot(1, 2, 2);
 t_max_slice = squeeze(t_max_diff(:, :, i_F_mid))';
@@ -360,7 +360,7 @@ ylabel('Pressure [bar]');
 zlabel('Integrated Discrimination');
 title(sprintf('Model Discrimination Surface (F = %.1f g/min)', F_range(i_F_best)*1e5*60));
 colorbar;
-colormap(hot);
+colormap(turbo);
 shading interp;
 
 %% Figure 5: Effect of each operating variable
@@ -474,7 +474,7 @@ results.Cov_power = Cov_power;
 results.Cov_linear_Di = Cov_linear_Di;
 results.Cov_linear_Upsilon = Cov_linear_Upsilon;
 
-save('discrimination_results.mat', 'results');
+%save('discrimination_results.mat', 'results');
 fprintf('\nResults saved to discrimination_results.mat\n');
 
 fprintf('\n=== Analysis Complete ===\n');
