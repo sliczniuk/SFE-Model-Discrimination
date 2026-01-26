@@ -27,19 +27,22 @@ Cov_power = [
     0.0054,  0.0009, -0.0004,  0.0313
 ];
 
-% Linear model - Diffusion parameters: [D_i(0), Re_coef, F_coef]
-Cov_linear_Di = [
-    0.0817,  0.0065, -0.0139;
-    0.0065,  1.6908, -0.0825;
-   -0.0139, -0.0825,  0.0065
+% Linear model - Full 6x6 variance-covariance matrix (CORRECTED)
+% Parameters: [D_i^R(0), D_i^R(1), D_i^R(2), Upsilon(0), Upsilon(1), Upsilon(2)]
+%             [D_i(0),   Re_coef,  F_coef,   Ups(0),     Re_coef,    F_coef  ]
+Cov_linear_full = [
+    0.0127,  0.0286, -0.0040,  0.0263,  0.0193, -0.0058;
+    0.0286,  0.4420, -0.0316,  0.0224,  0.6514, -0.0401;
+   -0.0040, -0.0316,  0.0027, -0.0060, -0.0382,  0.0033;
+    0.0263,  0.0224, -0.0060,  0.2018, -0.0717, -0.0313;
+    0.0193,  0.6514, -0.0382, -0.0717,  5.9260, -0.2668;
+   -0.0058, -0.0401,  0.0033, -0.0313, -0.2668,  0.0186
 ];
 
-% Linear model - Decay parameters: [Upsilon(0), Re_coef, F_coef]
-Cov_linear_Upsilon = [
-    0.1727,  0.0138, -0.0294;
-    0.0138,  3.5732, -0.1744;
-   -0.0294, -0.1744,  0.0137
-];
+% Extract sub-matrices for backward compatibility
+Cov_linear_Di = Cov_linear_full(1:3, 1:3);
+Cov_linear_Upsilon = Cov_linear_full(4:6, 4:6);
+Cov_linear_cross = Cov_linear_full(1:3, 4:6);  % Cross-covariance between D_i and Upsilon
 
 %% Optimal parameter values
 % Power model parameters
@@ -257,8 +260,8 @@ N_MC = 100;
 
 % Cholesky decomposition for sampling
 L_power = chol(Cov_power, 'lower');
-L_Di    = chol(Cov_linear_Di, 'lower');
-L_Ups   = chol(Cov_linear_Upsilon, 'lower');
+% Use full 6x6 covariance matrix for Linear model (accounts for D_i-Upsilon correlations)
+L_linear_full = chol(Cov_linear_full + 1e-10*eye(6), 'lower');  % Small regularization for numerical stability
 
 % Select representative operating points for detailed uncertainty analysis
 % (full MC on all points would be too expensive)
@@ -471,8 +474,10 @@ results.Y_final_linear = Y_final_linear;
 results.Y_trajectories_power = Y_trajectories_power;
 results.Y_trajectories_linear = Y_trajectories_linear;
 results.Cov_power = Cov_power;
+results.Cov_linear_full = Cov_linear_full;
 results.Cov_linear_Di = Cov_linear_Di;
 results.Cov_linear_Upsilon = Cov_linear_Upsilon;
+results.Cov_linear_cross = Cov_linear_cross;
 
 %save('discrimination_results.mat', 'results');
 fprintf('\nResults saved to discrimination_results.mat\n');

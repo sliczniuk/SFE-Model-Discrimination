@@ -1,407 +1,327 @@
-function plot_discrimination_results(results, save_figures)
-% PLOT_DISCRIMINATION_RESULTS
-% Generates comprehensive visualizations for model discrimination analysis.
+function plot_discrimination_results(results, varargin)
+% PLOT_DISCRIMINATION_RESULTS Visualize model discrimination results
+%
+% Generates diagnostic plots for trajectory-based model discrimination,
+% including divergence metrics, distribution evolution, and confidence bands.
+%
+% Syntax:
+%   plot_discrimination_results(results)
+%   plot_discrimination_results(results, 'Name', Value, ...)
 %
 % Inputs:
-%   results      - Structure from model_discrimination_analysis.m
-%   save_figures - (optional) Boolean to save figures to files (default: false)
+%   results - Struct from compute_discrimination_metrics containing:
+%             .Time, .Y_power_valid, .Y_linear_valid, .metrics, etc.
+%
+% Optional Name-Value Pairs:
+%   'Figures'     - Cell array of figure names to plot (default: 'all')
+%                   Options: 'divergence', 'divergence_cumulative', 'distribution',
+%                            'probability', 'final_yield', 'trajectories'
+%   'SaveFigs'    - Save figures to disk (default: false)
+%   'SavePath'    - Path for saved figures (default: current directory)
+%   'FileFormat'  - Format for saved figures (default: 'png')
+%
+% Example:
+%   [~, ~, results] = compute_discrimination_metrics(303, 150, 5e-5, 5, 600);
+%   plot_discrimination_results(results);
+%   plot_discrimination_results(results, 'Figures', {'divergence', 'distribution'});
 
-if nargin < 2
-    save_figures = false;
+%% Parse inputs
+p = inputParser;
+addRequired(p, 'results', @isstruct);
+addParameter(p, 'Figures', 'all', @(x) ischar(x) || iscell(x));
+addParameter(p, 'SaveFigs', false, @islogical);
+addParameter(p, 'SavePath', '.', @ischar);
+addParameter(p, 'FileFormat', 'png', @ischar);
+parse(p, results, varargin{:});
+
+figures_to_plot = p.Results.Figures;
+save_figs = p.Results.SaveFigs;
+save_path = p.Results.SavePath;
+file_format = p.Results.FileFormat;
+
+if ischar(figures_to_plot) && strcmp(figures_to_plot, 'all')
+    figures_to_plot = {'divergence', 'divergence_cumulative', 'distribution', ...
+                       'probability', 'final_yield', 'trajectories'};
 end
 
-%% Extract data
-T_range = results.T_range;
-P_range = results.P_range;
-F_range = results.F_range;
-D_integrated = results.D_integrated;
-D_max = results.D_max;
-t_max_diff = results.t_max_diff;
-Y_final_power = results.Y_final_power;
-Y_final_linear = results.Y_final_linear;
+%% Extract data from results
+Time_full = results.Time;
+Y_power_valid = results.Y_power_valid;
+Y_linear_valid = results.Y_linear_valid;
+Y_power_nom = results.Y_power_nom;
+Y_linear_nom = results.Y_linear_nom;
+metrics = results.metrics;
+n_valid = results.n_valid;
+T0 = results.T0;
+P0 = results.P0;
+F0 = results.F0;
+ExtractionTime = results.ExtractionTime;
+n_time_full = length(Time_full);
 
-n_T = length(T_range);
-n_P = length(P_range);
-n_F = length(F_range);
+%% Figure: Trajectory ensemble with confidence bands
+if ismember('trajectories', figures_to_plot)
+    fig_traj = figure('Name', 'Trajectory Ensemble with Parameter Uncertainty', 'Position', [100 100 1200 800]);
 
-%% Color settings
-cmap_hot = hot(256);
-cmap_cool = cool(256);
-cmap_parula = parula(256);
+    subplot(2, 2, 1);
+    n_plot = min(100, n_valid);
+    idx_plot = randperm(n_valid, n_plot);
+    for i = 1:n_plot
+        plot(Time_full, Y_power_valid(idx_plot(i), :), 'b-', 'LineWidth', 0.3, 'Color', [0 0 1 0.1]);
+        hold on;
+    end
+    plot(Time_full, metrics.mean_power, 'b-', 'LineWidth', 2, 'DisplayName', 'Mean Power');
+    plot(Time_full, Y_power_nom, 'b--', 'LineWidth', 1.5, 'DisplayName', 'Nominal Power');
+    fill([Time_full, fliplr(Time_full)], [metrics.ci95_power(1,:), fliplr(metrics.ci95_power(2,:))], ...
+        'b', 'FaceAlpha', 0.2, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+    xlabel('Time [min]');
+    ylabel('Yield [g]');
+    title('Power Model Trajectories');
+    legend('Location', 'southeast');
+    grid on;
 
-%% ========================================================================
-%  FIGURE 1: Overview Heatmaps
-%  ========================================================================
-fig1 = figure('Name', 'Model Discrimination Overview', 'Position', [50 50 1600 900]);
+    subplot(2, 2, 2);
+    for i = 1:n_plot
+        plot(Time_full, Y_linear_valid(idx_plot(i), :), 'r-', 'LineWidth', 0.3, 'Color', [1 0 0 0.1]);
+        hold on;
+    end
+    plot(Time_full, metrics.mean_linear, 'r-', 'LineWidth', 2, 'DisplayName', 'Mean Linear');
+    plot(Time_full, Y_linear_nom, 'r--', 'LineWidth', 1.5, 'DisplayName', 'Nominal Linear');
+    fill([Time_full, fliplr(Time_full)], [metrics.ci95_linear(1,:), fliplr(metrics.ci95_linear(2,:))], ...
+        'r', 'FaceAlpha', 0.2, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+    xlabel('Time [min]');
+    ylabel('Yield [g]');
+    title('Linear Model Trajectories');
+    legend('Location', 'southeast');
+    grid on;
 
-% Select flow rates to display
-F_indices = round(linspace(1, n_F, min(6, n_F)));
-
-for idx = 1:length(F_indices)
-    i_F = F_indices(idx);
-    subplot(2, 3, idx);
-
-    D_slice = squeeze(D_integrated(:, :, i_F))';
-
-    imagesc(T_range - 273, P_range, D_slice);
-    colorbar;
-    xlabel('Temperature [°C]');
-    ylabel('Pressure [bar]');
-    title(sprintf('F = %.1f g/min', F_range(i_F) * 1e5 * 60));
-    set(gca, 'YDir', 'normal');
-    colormap(gca, cmap_hot);
-
-    % Mark maximum
-    [~, idx_max] = max(D_slice(:));
-    [i_P_max, i_T_max] = ind2sub(size(D_slice), idx_max);
+    subplot(2, 2, 3);
+    fill([Time_full, fliplr(Time_full)], [metrics.ci95_power(1,:), fliplr(metrics.ci95_power(2,:))], ...
+        'b', 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Power 95% CI');
     hold on;
-    plot(T_range(i_T_max) - 273, P_range(i_P_max), 'co', 'MarkerSize', 12, 'LineWidth', 2);
-    hold off;
-end
+    fill([Time_full, fliplr(Time_full)], [metrics.ci95_linear(1,:), fliplr(metrics.ci95_linear(2,:))], ...
+        'r', 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Linear 95% CI');
+    plot(Time_full, metrics.mean_power, 'b-', 'LineWidth', 2, 'DisplayName', 'Mean Power');
+    plot(Time_full, metrics.mean_linear, 'r-', 'LineWidth', 2, 'DisplayName', 'Mean Linear');
+    xlabel('Time [min]');
+    ylabel('Yield [g]');
+    title('Mean Trajectories with 95% CI');
+    legend('Location', 'southeast');
+    grid on;
 
-sgtitle('Integrated Model Discrimination ∫|Y_{power} - Y_{linear}| dt', 'FontSize', 14, 'FontWeight', 'bold');
+    subplot(2, 2, 4);
+    diff_trajectories = Y_power_valid - Y_linear_valid;
+    mean_diff_traj = mean(diff_trajectories, 1);
+    ci_diff = [prctile(diff_trajectories, 2.5, 1); prctile(diff_trajectories, 97.5, 1)];
 
-if save_figures
-    saveas(fig1, 'fig_discrimination_overview.png');
-    saveas(fig1, 'fig_discrimination_overview.fig');
-end
+    fill([Time_full, fliplr(Time_full)], [ci_diff(1,:), fliplr(ci_diff(2,:))], ...
+        [0.5 0 0.5], 'FaceAlpha', 0.3, 'EdgeColor', 'none');
+    hold on;
+    plot(Time_full, mean_diff_traj, 'm-', 'LineWidth', 2);
+    yline(0, 'k--', 'LineWidth', 1);
+    xlabel('Time [min]');
+    ylabel('Difference (Power - Linear) [g]');
+    title('Yield Difference with 95% CI');
+    grid on;
 
-%% ========================================================================
-%  FIGURE 2: Maximum Difference Analysis
-%  ========================================================================
-fig2 = figure('Name', 'Maximum Difference Analysis', 'Position', [100 100 1400 500]);
+    sgtitle(sprintf('Trajectory Ensemble: T=%.0fK, P=%.0fbar, F=%.1e m3/s (N=%d)', T0, P0, F0, n_valid), 'FontSize', 12);
 
-% Find optimal flow index
-[~, idx_opt] = max(D_integrated(:));
-[~, ~, i_F_opt] = ind2sub([n_T, n_P, n_F], idx_opt);
-
-% Maximum difference magnitude
-subplot(1, 3, 1);
-D_max_slice = squeeze(D_max(:, :, i_F_opt))';
-imagesc(T_range - 273, P_range, D_max_slice);
-colorbar;
-xlabel('Temperature [°C]');
-ylabel('Pressure [bar]');
-title(sprintf('Max |ΔY| at F=%.1f g/min', F_range(i_F_opt)*1e5*60));
-set(gca, 'YDir', 'normal');
-colormap(gca, cmap_hot);
-
-% Time of maximum difference
-subplot(1, 3, 2);
-t_max_slice = squeeze(t_max_diff(:, :, i_F_opt))';
-imagesc(T_range - 273, P_range, t_max_slice);
-cb = colorbar;
-ylabel(cb, 'Time [min]');
-xlabel('Temperature [°C]');
-ylabel('Pressure [bar]');
-title('Time of Maximum Difference');
-set(gca, 'YDir', 'normal');
-colormap(gca, cmap_parula);
-
-% Final yield difference
-subplot(1, 3, 3);
-diff_final = squeeze(Y_final_power(:, :, i_F_opt) - Y_final_linear(:, :, i_F_opt))';
-imagesc(T_range - 273, P_range, diff_final);
-cb = colorbar;
-ylabel(cb, 'Yield [g]');
-xlabel('Temperature [°C]');
-ylabel('Pressure [bar]');
-title('Final Yield Difference (Power - Linear)');
-set(gca, 'YDir', 'normal');
-% Use diverging colormap for signed values
-n_colors = 256;
-cmap_div = [linspace(0,1,n_colors/2)', linspace(0,1,n_colors/2)', ones(n_colors/2,1);
-            ones(n_colors/2,1), linspace(1,0,n_colors/2)', linspace(1,0,n_colors/2)'];
-colormap(gca, cmap_div);
-caxis([-max(abs(diff_final(:))), max(abs(diff_final(:)))]);
-
-sgtitle('Maximum Difference Analysis', 'FontSize', 14, 'FontWeight', 'bold');
-
-if save_figures
-    saveas(fig2, 'fig_max_difference_analysis.png');
-    saveas(fig2, 'fig_max_difference_analysis.fig');
-end
-
-%% ========================================================================
-%  FIGURE 3: Operating Variable Effects
-%  ========================================================================
-fig3 = figure('Name', 'Operating Variable Effects', 'Position', [150 150 1400 400]);
-
-% Marginal effects (averaging over other variables)
-D_vs_T = squeeze(mean(mean(D_integrated, 3), 2));
-D_vs_P = squeeze(mean(mean(D_integrated, 3), 1));
-D_vs_F = squeeze(mean(mean(D_integrated, 2), 1));
-
-% Also compute conditional effects at optimum
-[~, i_T_opt, i_P_opt, i_F_opt] = find_optimum(D_integrated);
-D_vs_T_cond = squeeze(D_integrated(:, i_P_opt, i_F_opt));
-D_vs_P_cond = squeeze(D_integrated(i_T_opt, :, i_F_opt));
-D_vs_F_cond = squeeze(D_integrated(i_T_opt, i_P_opt, :));
-
-% Temperature effect
-subplot(1, 3, 1);
-yyaxis left;
-plot(T_range - 273, D_vs_T, 'b-o', 'LineWidth', 2, 'MarkerFaceColor', 'b', 'MarkerSize', 6);
-ylabel('Mean Discrimination');
-yyaxis right;
-plot(T_range - 273, D_vs_T_cond, 'r--s', 'LineWidth', 1.5, 'MarkerFaceColor', 'r', 'MarkerSize', 5);
-ylabel('At Optimal P,F');
-xlabel('Temperature [°C]');
-title('Effect of Temperature');
-legend('Marginal', 'Conditional', 'Location', 'best');
-grid on;
-
-% Pressure effect
-subplot(1, 3, 2);
-yyaxis left;
-plot(P_range, D_vs_P, 'b-o', 'LineWidth', 2, 'MarkerFaceColor', 'b', 'MarkerSize', 6);
-ylabel('Mean Discrimination');
-yyaxis right;
-plot(P_range, D_vs_P_cond, 'r--s', 'LineWidth', 1.5, 'MarkerFaceColor', 'r', 'MarkerSize', 5);
-ylabel('At Optimal T,F');
-xlabel('Pressure [bar]');
-title('Effect of Pressure');
-legend('Marginal', 'Conditional', 'Location', 'best');
-grid on;
-
-% Flow rate effect
-subplot(1, 3, 3);
-yyaxis left;
-plot(F_range * 1e5 * 60, D_vs_F, 'b-o', 'LineWidth', 2, 'MarkerFaceColor', 'b', 'MarkerSize', 6);
-ylabel('Mean Discrimination');
-yyaxis right;
-plot(F_range * 1e5 * 60, D_vs_F_cond, 'r--s', 'LineWidth', 1.5, 'MarkerFaceColor', 'r', 'MarkerSize', 5);
-ylabel('At Optimal T,P');
-xlabel('Flow Rate [g/min]');
-title('Effect of Flow Rate');
-legend('Marginal', 'Conditional', 'Location', 'best');
-grid on;
-
-sgtitle('Effect of Operating Variables on Model Discrimination', 'FontSize', 14, 'FontWeight', 'bold');
-
-if save_figures
-    saveas(fig3, 'fig_operating_variable_effects.png');
-    saveas(fig3, 'fig_operating_variable_effects.fig');
-end
-
-%% ========================================================================
-%  FIGURE 4: 3D Surface Plot
-%  ========================================================================
-fig4 = figure('Name', '3D Discrimination Surface', 'Position', [200 200 1000 800]);
-
-[T_mesh, P_mesh] = meshgrid(T_range - 273, P_range);
-
-% Surface at optimal flow
-D_surface = squeeze(D_integrated(:, :, i_F_opt))';
-
-subplot(2, 2, [1 2]);
-surf(T_mesh, P_mesh, D_surface, 'EdgeAlpha', 0.3);
-xlabel('Temperature [°C]');
-ylabel('Pressure [bar]');
-zlabel('Discrimination');
-title(sprintf('Discrimination Surface at F = %.1f g/min', F_range(i_F_opt)*1e5*60));
-colorbar;
-colormap(cmap_hot);
-view([-30, 30]);
-lighting gouraud;
-camlight('headlight');
-
-% Contour plot
-subplot(2, 2, 3);
-contourf(T_mesh, P_mesh, D_surface, 15);
-xlabel('Temperature [°C]');
-ylabel('Pressure [bar]');
-title('Contour Plot');
-colorbar;
-colormap(gca, cmap_hot);
-
-% Find and mark optimal point
-[D_max_val, idx_max] = max(D_surface(:));
-[i_P_max, i_T_max] = ind2sub(size(D_surface), idx_max);
-hold on;
-plot(T_range(i_T_max) - 273, P_range(i_P_max), 'ko', 'MarkerSize', 12, 'MarkerFaceColor', 'c', 'LineWidth', 2);
-text(T_range(i_T_max) - 273 + 2, P_range(i_P_max), sprintf(' Optimal\n (%.0f°C, %.0f bar)', ...
-    T_range(i_T_max)-273, P_range(i_P_max)), 'FontSize', 10);
-hold off;
-
-% Discrimination vs density (derived from P, T)
-subplot(2, 2, 4);
-% Compute approximate density for each (T, P) combination
-rho_grid = zeros(n_T, n_P);
-for i_T = 1:n_T
-    for i_P = 1:n_P
-        Z = Compressibility(T_range(i_T), P_range(i_P), []);  % Simplified
-        % Approximate density using ideal gas + compressibility
-        R = 8.314e-5;  % m³·bar/(mol·K)
-        MW = 0.044;    % kg/mol for CO2
-        rho_grid(i_T, i_P) = P_range(i_P) * MW / (Z * R * T_range(i_T));
+    if save_figs
+        saveas(fig_traj, fullfile(save_path, ['trajectories.' file_format]));
     end
 end
 
-D_at_opt_F = squeeze(D_integrated(:, :, i_F_opt));
-scatter(rho_grid(:), D_at_opt_F(:), 30, 'filled', 'MarkerFaceAlpha', 0.6);
-xlabel('Density [kg/m³]');
-ylabel('Discrimination');
-title('Discrimination vs Fluid Density');
-grid on;
+%% Figure: Time-pointwise divergence metrics
+if ismember('divergence', figures_to_plot)
+    fig_div = figure('Name', 'Divergence Metrics Over Time', 'Position', [150 150 1200 400]);
 
-% Fit trend line
-p = polyfit(rho_grid(:), D_at_opt_F(:), 2);
-rho_fit = linspace(min(rho_grid(:)), max(rho_grid(:)), 100);
-D_fit = polyval(p, rho_fit);
-hold on;
-plot(rho_fit, D_fit, 'r-', 'LineWidth', 2);
-hold off;
-legend('Data', 'Quadratic Fit', 'Location', 'best');
+    subplot(1, 3, 1);
+    plot(Time_full, metrics.js_divergence, 'k-', 'LineWidth', 2);
+    hold on;
+    xline(metrics.js_max_time, 'r--', sprintf('Max=%.3f', metrics.js_max));
+    xlabel('Time [min]');
+    ylabel('JS Divergence [nats]');
+    title('Jensen-Shannon Divergence');
+    grid on;
 
-sgtitle('3D Analysis of Model Discrimination', 'FontSize', 14, 'FontWeight', 'bold');
+    subplot(1, 3, 2);
+    plot(Time_full, metrics.kl_power_linear, 'b-', 'LineWidth', 2, 'DisplayName', 'KL(P||L)');
+    hold on;
+    plot(Time_full, metrics.kl_linear_power, 'r-', 'LineWidth', 2, 'DisplayName', 'KL(L||P)');
+    xlabel('Time [min]');
+    ylabel('KL Divergence [nats]');
+    title('KL Divergence');
+    legend('Location', 'best');
+    grid on;
 
-if save_figures
-    saveas(fig4, 'fig_3d_discrimination.png');
-    saveas(fig4, 'fig_3d_discrimination.fig');
+    subplot(1, 3, 3);
+    plot(Time_full, metrics.ks_stat, 'g-', 'LineWidth', 2);
+    hold on;
+    xline(metrics.ks_max_time, 'r--', sprintf('Max=%.3f', metrics.ks_max));
+    xlabel('Time [min]');
+    ylabel('KS Statistic');
+    title('Kolmogorov-Smirnov Statistic');
+    grid on;
+
+    sgtitle('Divergence Metrics Over Extraction Time', 'FontSize', 14);
+
+    if save_figs
+        saveas(fig_div, fullfile(save_path, ['divergence.' file_format]));
+    end
 end
 
-%% ========================================================================
-%  FIGURE 5: Trajectory Comparison at Key Points
-%  ========================================================================
-fig5 = figure('Name', 'Trajectory Comparison', 'Position', [250 100 1400 800]);
+%% Figure: Divergence metrics integrated (cumulative) over time
+if ismember('divergence_cumulative', figures_to_plot)
+    fig_div_cum = figure('Name', 'Divergence Metrics Integrated Over Time', 'Position', [150 150 1200 400]);
 
-if isfield(results, 'Y_trajectories_power') && isfield(results, 'Y_trajectories_linear')
+    subplot(1, 3, 1);
+    plot(Time_full, cumsum(metrics.js_divergence), 'k-', 'LineWidth', 2);
+    hold on;
+    xline(metrics.js_max_time, 'r--', sprintf('Max=%.3f', metrics.js_max));
+    xlabel('Time [min]');
+    ylabel('Cumulative JS Divergence [nats]');
+    title('Jensen-Shannon Divergence');
+    grid on;
 
-    % Select 4 representative conditions
-    % 1. Maximum discrimination
-    [~, idx1] = max(D_integrated(:));
-    [i1_T, i1_P, i1_F] = ind2sub([n_T, n_P, n_F], idx1);
+    subplot(1, 3, 2);
+    plot(Time_full, cumsum(metrics.kl_power_linear), 'b-', 'LineWidth', 2, 'DisplayName', 'KL(P||L)');
+    hold on;
+    plot(Time_full, cumsum(metrics.kl_linear_power), 'r-', 'LineWidth', 2, 'DisplayName', 'KL(L||P)');
+    plot(Time_full, cumsum(metrics.kl_linear_power + metrics.kl_power_linear), 'k-', 'LineWidth', 2, 'DisplayName', 'KL(L||P) + KL(P||L)');
+    xlabel('Time [min]');
+    ylabel('Cumulative KL Divergence [nats]');
+    title('KL Divergence');
+    legend('Location', 'best');
+    grid on;
 
-    % 2. Minimum discrimination (where models agree)
-    [~, idx2] = min(D_integrated(:));
-    [i2_T, i2_P, i2_F] = ind2sub([n_T, n_P, n_F], idx2);
+    subplot(1, 3, 3);
+    plot(Time_full, cumsum(metrics.ks_stat), 'g-', 'LineWidth', 2);
+    hold on;
+    xline(metrics.ks_max_time, 'r--', sprintf('Max=%.3f', metrics.ks_max));
+    xlabel('Time [min]');
+    ylabel('Cumulative KS Statistic');
+    title('Kolmogorov-Smirnov Statistic');
+    grid on;
 
-    % 3. High T, Low P corner
-    i3_T = n_T; i3_P = 1; i3_F = ceil(n_F/2);
+    sgtitle('Divergence Metrics Integrated Over Time', 'FontSize', 14);
 
-    % 4. Low T, High P corner
-    i4_T = 1; i4_P = n_P; i4_F = ceil(n_F/2);
+    if save_figs
+        saveas(fig_div_cum, fullfile(save_path, ['divergence_cumulative.' file_format]));
+    end
+end
 
-    conditions = {
-        [i1_T, i1_P, i1_F], 'Max Discrimination';
-        [i2_T, i2_P, i2_F], 'Min Discrimination';
-        [i3_T, i3_P, i3_F], 'High T, Low P';
-        [i4_T, i4_P, i4_F], 'Low T, High P'
-    };
+%% Figure: Distribution evolution at selected times
+if ismember('distribution', figures_to_plot)
+    fig_dist = figure('Name', 'Distribution Evolution', 'Position', [200 200 1400 600]);
 
-    Time = linspace(0, 600, size(results.Y_trajectories_power{1,1,1}, 2));
+    t_select = [2, round(n_time_full/5), round(2*n_time_full/5), round(3*n_time_full/5), ...
+                round(4*n_time_full/5), n_time_full];
+    t_select = unique(max(t_select, 2));
 
-    for k = 1:4
-        idx = conditions{k, 1};
-        name = conditions{k, 2};
+    for j = 1:length(t_select)
+        subplot(2, length(t_select), j);
 
-        Y_power = results.Y_trajectories_power{idx(1), idx(2), idx(3)};
-        Y_linear = results.Y_trajectories_linear{idx(1), idx(2), idx(3)};
+        i_t = t_select(j);
+        y_p = Y_power_valid(:, i_t);
+        y_l = Y_linear_valid(:, i_t);
 
-        if isempty(Y_power) || isempty(Y_linear)
-            continue;
-        end
+        edges = linspace(min([y_p; y_l])*0.95, max([y_p; y_l])*1.05, 30);
 
-        subplot(2, 4, k);
-        plot(Time, Y_power, 'b-', 'LineWidth', 2);
+        histogram(y_p, edges, 'FaceColor', 'b', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Power');
         hold on;
-        plot(Time, Y_linear, 'r--', 'LineWidth', 2);
-        hold off;
-        xlabel('Time [min]');
-        ylabel('Yield [g]');
-        title(sprintf('%s\nT=%.0f°C, P=%.0f bar, F=%.1f', name, ...
-            T_range(idx(1))-273, P_range(idx(2)), F_range(idx(3))*1e5*60));
-        if k == 1
-            legend('Power', 'Linear', 'Location', 'southeast');
+        histogram(y_l, edges, 'FaceColor', 'r', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Linear');
+
+        title(sprintf('t = %.0f min', Time_full(i_t)));
+        xlabel('Yield [g]');
+        if j == 1
+            ylabel('PDF');
         end
+        legend('Location', 'best');
         grid on;
 
-        subplot(2, 4, k + 4);
-        diff_traj = Y_power - Y_linear;
-        plot(Time, diff_traj, 'k-', 'LineWidth', 2);
-        xlabel('Time [min]');
-        ylabel('ΔY [g]');
-        title('Difference (Power - Linear)');
-        grid on;
+        text(0.95, 0.95, sprintf('JS=%.3f', metrics.js_divergence(i_t)), ...
+            'Units', 'normalized', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top');
+
+        % CDF subplot
+        subplot(2, length(t_select), length(t_select) + j);
+        [f_p, x_p] = ecdf(y_p);
+        [f_l, x_l] = ecdf(y_l);
+        plot(x_p, f_p, 'b-', 'LineWidth', 2);
         hold on;
-        yline(0, 'r--');
-        hold off;
+        plot(x_l, f_l, 'r-', 'LineWidth', 2);
+        xlabel('Yield [g]');
+        if j == 1
+            ylabel('CDF');
+        end
+        title(sprintf('KS = %.3f', metrics.ks_stat(i_t)));
+        grid on;
     end
 
-    sgtitle('Yield Trajectories at Different Operating Conditions', 'FontSize', 14, 'FontWeight', 'bold');
-else
-    text(0.5, 0.5, 'Trajectory data not available', 'HorizontalAlignment', 'center', ...
-        'FontSize', 14, 'Units', 'normalized');
+    sgtitle('Distribution Evolution Over Time (PDF top, CDF bottom)', 'FontSize', 14);
+
+    if save_figs
+        saveas(fig_dist, fullfile(save_path, ['distribution.' file_format]));
+    end
 end
 
-if save_figures
-    saveas(fig5, 'fig_trajectory_comparison.png');
-    saveas(fig5, 'fig_trajectory_comparison.fig');
+%% Figure: Probability of Power > Linear
+if ismember('probability', figures_to_plot)
+    fig_prob = figure('Name', 'Probability Power Greater', 'Position', [250 250 800 500]);
+
+    plot(Time_full, metrics.prob_power_greater * 100, 'k-', 'LineWidth', 2);
+    hold on;
+    yline(50, 'r--', 'No Difference', 'LineWidth', 1.5);
+    yline(95, 'g--', '95%');
+    yline(5, 'g--', '5%');
+    fill([Time_full(1), Time_full(end), Time_full(end), Time_full(1)], [45 45 55 55], ...
+        'y', 'FaceAlpha', 0.2, 'EdgeColor', 'none');
+
+    xlabel('Time [min]');
+    ylabel('P(Power > Linear) [%]');
+    title('Probability that Power Model Predicts Higher Yield');
+    ylim([0 100]);
+    grid on;
+
+    if save_figs
+        saveas(fig_prob, fullfile(save_path, ['probability.' file_format]));
+    end
 end
 
-%% ========================================================================
-%  FIGURE 6: Summary Statistics
-%  ========================================================================
-fig6 = figure('Name', 'Summary Statistics', 'Position', [300 150 1000 600]);
+%% Figure: Final yield comparison
+if ismember('final_yield', figures_to_plot)
+    fig_final = figure('Name', 'Final Yield Comparison', 'Position', [300 300 1000 400]);
 
-% Histogram of discrimination values
-subplot(2, 2, 1);
-histogram(D_integrated(:), 30, 'FaceColor', [0.3 0.6 0.9], 'EdgeColor', 'k');
-xlabel('Integrated Discrimination');
-ylabel('Frequency');
-title('Distribution of Discrimination Values');
-hold on;
-xline(mean(D_integrated(:)), 'r--', 'LineWidth', 2);
-xline(median(D_integrated(:)), 'g--', 'LineWidth', 2);
-legend('', 'Mean', 'Median');
-grid on;
+    subplot(1, 2, 1);
+    Y_final_diff = Y_power_valid(:, end) - Y_linear_valid(:, end);
+    histogram(Y_final_diff, 30, 'FaceColor', [0.5 0 0.5], 'FaceAlpha', 0.7, 'Normalization', 'pdf');
+    hold on;
+    xline(0, 'k--', 'LineWidth', 2);
+    xline(metrics.final_diff_mean, 'g-', 'LineWidth', 2);
+    xline(metrics.final_diff_ci95(1), 'm:', 'LineWidth', 1.5);
+    xline(metrics.final_diff_ci95(2), 'm:', 'LineWidth', 1.5);
+    xlabel('Final Yield Difference (Power - Linear) [g]');
+    ylabel('PDF');
+    title(sprintf('Final Diff: %.4f +/- %.4f g', metrics.final_diff_mean, metrics.final_diff_std));
+    grid on;
 
-% Histogram of time of max difference
-subplot(2, 2, 2);
-histogram(t_max_diff(:), 30, 'FaceColor', [0.9 0.6 0.3], 'EdgeColor', 'k');
-xlabel('Time of Max Difference [min]');
-ylabel('Frequency');
-title('When Models Differ Most');
-grid on;
+    subplot(1, 2, 2);
+    scatter(Y_linear_valid(:, end), Y_power_valid(:, end), 20, 'filled', 'MarkerFaceAlpha', 0.3);
+    hold on;
+    lims = [min([Y_power_valid(:, end); Y_linear_valid(:, end)]), ...
+            max([Y_power_valid(:, end); Y_linear_valid(:, end)])];
+    plot(lims, lims, 'k--', 'LineWidth', 1.5);
+    xlabel('Linear Final Yield [g]');
+    ylabel('Power Final Yield [g]');
+    title('Power vs Linear Final Yield');
+    axis equal;
+    xlim(lims);
+    ylim(lims);
+    grid on;
 
-% Scatter: Max diff vs Integrated diff
-subplot(2, 2, 3);
-scatter(D_max(:), D_integrated(:), 20, 'filled', 'MarkerFaceAlpha', 0.5);
-xlabel('Maximum Difference');
-ylabel('Integrated Difference');
-title('Max vs Integrated Discrimination');
-grid on;
-% Add correlation
-r = corrcoef(D_max(:), D_integrated(:));
-text(0.05, 0.95, sprintf('r = %.3f', r(1,2)), 'Units', 'normalized', ...
-    'FontSize', 12, 'FontWeight', 'bold');
+    sgtitle(sprintf('Final Yield Comparison at t = %.0f min', ExtractionTime), 'FontSize', 14);
 
-% Box plot by flow rate
-subplot(2, 2, 4);
-D_by_F = reshape(D_integrated, [], n_F);
-boxplot(D_by_F, 'Labels', arrayfun(@(x) sprintf('%.1f', x*1e5*60), F_range, 'UniformOutput', false));
-xlabel('Flow Rate [g/min]');
-ylabel('Integrated Discrimination');
-title('Discrimination Distribution by Flow Rate');
-grid on;
-
-sgtitle('Summary Statistics of Model Discrimination', 'FontSize', 14, 'FontWeight', 'bold');
-
-if save_figures
-    saveas(fig6, 'fig_summary_statistics.png');
-    saveas(fig6, 'fig_summary_statistics.fig');
+    if save_figs
+        saveas(fig_final, fullfile(save_path, ['final_yield.' file_format]));
+    end
 end
 
-fprintf('Plotting complete.\n');
-if save_figures
-    fprintf('Figures saved to current directory.\n');
-end
-
-end
-
-%% Helper function
-function [D_max, i_T, i_P, i_F] = find_optimum(D)
-    [D_max, idx] = max(D(:));
-    [i_T, i_P, i_F] = ind2sub(size(D), idx);
 end

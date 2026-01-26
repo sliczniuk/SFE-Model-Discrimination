@@ -1,11 +1,11 @@
 function [D_stats] = compute_discrimination_with_uncertainty(T0, P0, F0, Parameters, ...
-    F_accum_power, F_accum_linear, Cov_power, Cov_linear_Di, Cov_linear_Upsilon, ...
+    F_accum_power, F_accum_linear, Cov_power, Cov_linear_full, ...
     theta_power, theta_Di, theta_Upsilon, ...
     x0, N_Time, Nx, Time, N_MC)
 % COMPUTE_DISCRIMINATION_WITH_UNCERTAINTY
 % Computes discrimination metrics between Power and Linear models with
-% uncertainty propagation using Monte Carlo sampling from parameter
-% variance-covariance matrices.
+% uncertainty propagation using first-order Taylor expansion (delta method)
+% from parameter variance-covariance matrices.
 %
 % Inputs:
 %   T0, P0, F0     - Operating conditions (Temperature [K], Pressure [bar], Flow [m³/s])
@@ -13,16 +13,17 @@ function [D_stats] = compute_discrimination_with_uncertainty(T0, P0, F0, Paramet
 %   F_accum_power  - CasADi mapaccum integrator for Power model
 %   F_accum_linear - CasADi mapaccum integrator for Linear model
 %   Cov_power      - 4x4 covariance matrix for Power model [k_w0, a_w, b_w, n_k]
-%   Cov_linear_Di  - 3x3 covariance matrix for Diffusion [D_i(0), Re, F]
-%   Cov_linear_Upsilon - 3x3 covariance matrix for Decay [Upsilon(0), Re, F]
+%   Cov_linear_full - 6x6 FULL covariance matrix for Linear model
+%                     [D_i(0), D_i(Re), D_i(F), Ups(0), Ups(Re), Ups(F)]
+%                     This includes cross-covariances between D_i and Upsilon parameters
 %   theta_power    - 4x1 optimal Power model parameters
-%   theta_Di       - 3x1 optimal Diffusion parameters
-%   theta_Upsilon  - 3x1 optimal Decay parameters
+%   theta_Di       - 3x1 optimal Diffusion parameters [D_i(0), Re_coef, F_coef]
+%   theta_Upsilon  - 3x1 optimal Decay parameters [Ups(0), Re_coef, F_coef]
 %   x0             - Initial state vector
 %   N_Time         - Number of time steps
 %   Nx             - Number of states
 %   Time           - Time vector [min]
-%   N_MC           - Number of Monte Carlo samples
+%   N_MC           - Number of Monte Carlo samples (reserved for future use)
 %
 % Outputs:
 %   D_stats        - Structure with discrimination statistics
@@ -58,16 +59,14 @@ catch ME
     return;
 end
 
-%% Cholesky decomposition for sampling
+%% Cholesky decomposition for sampling (reserved for future MC)
 try
     L_power = chol(Cov_power + 1e-10*eye(4), 'lower');
-    L_Di    = chol(Cov_linear_Di + 1e-10*eye(3), 'lower');
-    L_Ups   = chol(Cov_linear_Upsilon + 1e-10*eye(3), 'lower');
+    L_linear = chol(Cov_linear_full + 1e-10*eye(6), 'lower');
 catch ME
     warning('Cholesky decomposition failed, using diagonal approximation');
     L_power = diag(sqrt(diag(Cov_power)));
-    L_Di    = diag(sqrt(diag(Cov_linear_Di)));
-    L_Ups   = diag(sqrt(diag(Cov_linear_Upsilon)));
+    L_linear = diag(sqrt(diag(Cov_linear_full)));
 end
 
 %% Monte Carlo sampling for uncertainty propagation
@@ -145,18 +144,46 @@ c_Ups = theta_Upsilon(3);
 D_i_nom = a_Di + b_Di * Re_approx + c_Di * F0 * 1e5;
 Ups_nom = a_Ups + b_Ups * Re_approx + c_Ups * F0 * 1e5;
 
-% Sensitivities for Linear model
-% dY/d(D_i params) and dY/d(Upsilon params)
-% Simplified: Y scales roughly linearly with D_i at early times
-scale_factor = Y_final_linear / max(D_i_nom, 1e-6);
+% Sensitivities for Linear model using FULL 6x6 covariance matrix
+% Parameters: [D_i(0), D_i(Re), D_i(F), Ups(0), Ups(Re), Ups(F)]
+%
+% dY/d(D_i params): Y scales roughly with D_i (diffusion coefficient)
+% dY/d(Ups params): Upsilon affects decay, negative effect on yield
 
-J_Di = scale_factor * [1, Re_approx, F0*1e5];
-J_Ups = -Y_final_linear * 0.2 * [1, Re_approx, F0*1e5];  % Decay effect
+% Build the FULL Jacobian vector (1x6) for Linear model
+% J_linear = [dY/dD_i(0), dY/dD_i(Re), dY/dD_i(F), dY/dUps(0), dY/dUps(Re), dY/dUps(F)]
+
+scale_factor_Di = Y_final_linear / max(D_i_nom, 1e-6);
+scale_factor_Ups = -Y_final_linear * 0.2;  % Decay effect (negative)
+
+% Partial derivatives w.r.t. D_i parameters
+dY_dDi0   = scale_factor_Di * 1;
+dY_dDiRe  = scale_factor_Di * Re_approx;
+dY_dDiF   = scale_factor_Di * F0 * 1e5;
+
+% Partial derivatives w.r.t. Upsilon parameters
+dY_dUps0  = scale_factor_Ups * 1;
+dY_dUpsRe = scale_factor_Ups * Re_approx;
+dY_dUpsF  = scale_factor_Ups * F0 * 1e5;
+
+% Full Jacobian (1x6)
+J_linear_full = [dY_dDi0, dY_dDiRe, dY_dDiF, dY_dUps0, dY_dUpsRe, dY_dUpsF];
+
+% Variance using FULL covariance matrix (includes cross-covariances)
+% Var(Y) = J * Cov * J'
+Var_Y_linear = J_linear_full * Cov_linear_full * J_linear_full';
+Std_Y_linear = sqrt(max(Var_Y_linear, 0));
+
+% Also compute component variances for diagnostics
+J_Di = [dY_dDi0, dY_dDiRe, dY_dDiF];
+J_Ups = [dY_dUps0, dY_dUpsRe, dY_dUpsF];
+Cov_linear_Di = Cov_linear_full(1:3, 1:3);
+Cov_linear_Ups = Cov_linear_full(4:6, 4:6);
+Cov_linear_cross = Cov_linear_full(1:3, 4:6);
 
 Var_Y_linear_Di  = J_Di * Cov_linear_Di * J_Di';
-Var_Y_linear_Ups = J_Ups * Cov_linear_Upsilon * J_Ups';
-Var_Y_linear = Var_Y_linear_Di + Var_Y_linear_Ups;  % Independent parameters
-Std_Y_linear = sqrt(max(Var_Y_linear, 0));
+Var_Y_linear_Ups = J_Ups * Cov_linear_Ups * J_Ups';
+Var_Y_linear_cross = 2 * J_Di * Cov_linear_cross * J_Ups';  % Cross-term contribution
 
 %% Compute discrimination metrics
 % 1. Absolute difference
@@ -206,6 +233,20 @@ D_stats.P = P0;
 D_stats.F = F0;
 D_stats.rho = rho;
 D_stats.Re = Re_approx;
+
+% 12. Variance decomposition for Linear model (diagnostics)
+D_stats.Var_Y_linear_Di    = Var_Y_linear_Di;     % Contribution from D_i parameters
+D_stats.Var_Y_linear_Ups   = Var_Y_linear_Ups;    % Contribution from Upsilon parameters
+D_stats.Var_Y_linear_cross = Var_Y_linear_cross;  % Cross-covariance contribution
+D_stats.Var_Y_linear_total = Var_Y_linear;        % Total variance
+
+% 13. Jacobian vectors for sensitivity analysis
+D_stats.J_power = J_power;
+D_stats.J_linear_full = J_linear_full;
+
+% 14. Nominal parameter values at operating conditions
+D_stats.D_i_nom = D_i_nom;
+D_stats.Ups_nom = Ups_nom;
 
 D_stats.valid = true;
 
