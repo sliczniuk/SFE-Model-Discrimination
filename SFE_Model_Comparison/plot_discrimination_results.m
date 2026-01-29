@@ -13,12 +13,13 @@ function plot_discrimination_results(results, varargin)
 %             .Time, .Y_power_valid, .Y_linear_valid, .metrics, etc.
 %
 % Optional Name-Value Pairs:
-%   'Figures'     - Cell array of figure names to plot (default: 'all')
-%                   Options: 'divergence', 'divergence_cumulative', 'distribution',
-%                            'probability', 'final_yield', 'trajectories'
-%   'SaveFigs'    - Save figures to disk (default: false)
-%   'SavePath'    - Path for saved figures (default: current directory)
-%   'FileFormat'  - Format for saved figures (default: 'png')
+%   'Figures'        - Cell array of figure names to plot (default: 'all')
+%                      Options: 'divergence', 'divergence_cumulative', 'distribution',
+%                               'probability', 'final_yield', 'trajectories'
+%   'SaveFigs'       - Save figures to disk (default: false)
+%   'SavePath'       - Path for saved figures (default: current directory)
+%   'FileFormat'     - Format for saved figures (default: 'png')
+%   'SaveNameSuffix' - Custom suffix appended to filenames (default: '')
 %
 % Example:
 %   [~, ~, results] = compute_discrimination_metrics(303, 150, 5e-5, 5, 600);
@@ -32,12 +33,14 @@ addParameter(p, 'Figures', 'all', @(x) ischar(x) || iscell(x));
 addParameter(p, 'SaveFigs', false, @islogical);
 addParameter(p, 'SavePath', '.', @ischar);
 addParameter(p, 'FileFormat', 'png', @ischar);
+addParameter(p, 'SaveNameSuffix', '', @ischar);
 parse(p, results, varargin{:});
 
 figures_to_plot = p.Results.Figures;
 save_figs = p.Results.SaveFigs;
 save_path = p.Results.SavePath;
 file_format = p.Results.FileFormat;
+save_name_suffix = p.Results.SaveNameSuffix;
 
 if ischar(figures_to_plot) && strcmp(figures_to_plot, 'all')
     figures_to_plot = {'divergence', 'divergence_cumulative', 'distribution', ...
@@ -123,18 +126,18 @@ if ismember('trajectories', figures_to_plot)
     title('Yield Difference with 95% CI');
     grid on;
 
-    sgtitle(sprintf('Trajectory Ensemble: T=%.0fK, P=%.0fbar, F=%.1e m3/s (N=%d)', T0, P0, F0, n_valid), 'FontSize', 12);
+    %sgtitle(sprintf('Trajectory Ensemble: T=%.0fK, P=%.0fbar, F=%.1e m3/s (N=%d)', T0, P0, F0, n_valid), 'FontSize', 12);
 
     if save_figs
-        saveas(fig_traj, fullfile(save_path, ['trajectories.' file_format]));
+        saveas(fig_traj, fullfile(save_path, ['trajectories' save_name_suffix '.' file_format]));
     end
 end
 
 %% Figure: Time-pointwise divergence metrics
 if ismember('divergence', figures_to_plot)
-    fig_div = figure('Name', 'Divergence Metrics Over Time', 'Position', [150 150 1200 400]);
+    fig_div = figure('Name', 'Divergence Metrics Over Time', 'Position', [200 200 600 1400]);
 
-    subplot(1, 3, 1);
+    subplot(4, 1, 1);
     plot(Time_full, metrics.js_divergence, 'k-', 'LineWidth', 2);
     hold on;
     xline(metrics.js_max_time, 'r--', sprintf('Max=%.3f', metrics.js_max));
@@ -143,7 +146,7 @@ if ismember('divergence', figures_to_plot)
     title('Jensen-Shannon Divergence');
     grid on;
 
-    subplot(1, 3, 2);
+    subplot(4, 1, 2);
     plot(Time_full, metrics.kl_power_linear, 'b-', 'LineWidth', 2, 'DisplayName', 'KL(P||L)');
     hold on;
     plot(Time_full, metrics.kl_linear_power, 'r-', 'LineWidth', 2, 'DisplayName', 'KL(L||P)');
@@ -153,7 +156,7 @@ if ismember('divergence', figures_to_plot)
     legend('Location', 'best');
     grid on;
 
-    subplot(1, 3, 3);
+    subplot(4, 1, 3);
     plot(Time_full, metrics.ks_stat, 'g-', 'LineWidth', 2);
     hold on;
     xline(metrics.ks_max_time, 'r--', sprintf('Max=%.3f', metrics.ks_max));
@@ -162,10 +165,25 @@ if ismember('divergence', figures_to_plot)
     title('Kolmogorov-Smirnov Statistic');
     grid on;
 
-    sgtitle('Divergence Metrics Over Extraction Time', 'FontSize', 14);
+    subplot(4, 1, 4);
+    if isfield(metrics, 'auc')
+        plot(Time_full, metrics.auc, 'm-', 'LineWidth', 2);
+        hold on;
+        yline(0.5, 'k--', 'No Discrimination', 'LineWidth', 1);
+        if isfield(metrics, 'auc_max_time')
+            xline(metrics.auc_max_time, 'r--', sprintf('Max=%.3f', metrics.auc_max));
+        end
+        xlabel('Time [min]');
+        ylabel('AUC-ROC');
+        title('Area Under ROC Curve');
+        ylim([0.4, 1]);
+        grid on;
+    end
+
+    %sgtitle('Divergence Metrics Over Extraction Time', 'FontSize', 14);
 
     if save_figs
-        saveas(fig_div, fullfile(save_path, ['divergence.' file_format]));
+        saveas(fig_div, fullfile(save_path, ['divergence' save_name_suffix '.' file_format]));
     end
 end
 
@@ -202,23 +220,24 @@ if ismember('divergence_cumulative', figures_to_plot)
     title('Kolmogorov-Smirnov Statistic');
     grid on;
 
-    sgtitle('Divergence Metrics Integrated Over Time', 'FontSize', 14);
+    %sgtitle('Divergence Metrics Integrated Over Time', 'FontSize', 14);
 
     if save_figs
-        saveas(fig_div_cum, fullfile(save_path, ['divergence_cumulative.' file_format]));
+        saveas(fig_div_cum, fullfile(save_path, ['divergence_cumulative' save_name_suffix '.' file_format]));
     end
 end
 
 %% Figure: Distribution evolution at selected times
 if ismember('distribution', figures_to_plot)
-    fig_dist = figure('Name', 'Distribution Evolution', 'Position', [200 200 1400 600]);
+    fig_dist = figure('Name', 'Distribution Evolution', 'Position', [200 200 600 1400]);
+    fig_KS = figure('Name', 'KS Evolution', 'Position', [200 200 600 1400]);
 
-    t_select = [2, round(n_time_full/5), round(2*n_time_full/5), round(3*n_time_full/5), ...
-                round(4*n_time_full/5), n_time_full];
+    t_select = [3, round(n_time_full/4), round(2*n_time_full/4), round(3*n_time_full/4), n_time_full];
     t_select = unique(max(t_select, 2));
 
     for j = 1:length(t_select)
-        subplot(2, length(t_select), j);
+        figure(fig_dist);
+        subplot(length(t_select), 1, j);
 
         i_t = t_select(j);
         y_p = Y_power_valid(:, i_t);
@@ -230,36 +249,42 @@ if ismember('distribution', figures_to_plot)
         hold on;
         histogram(y_l, edges, 'FaceColor', 'r', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Linear');
 
-        title(sprintf('t = %.0f min', Time_full(i_t)));
+        title(sprintf('t = %.0f min, JS=%.3f', Time_full(i_t), metrics.js_divergence(i_t) ));
         xlabel('Yield [g]');
-        if j == 1
-            ylabel('PDF');
+        ylabel('PDF');
+
+        if j == length(t_select)
+            legend('Location', 'northeast');
         end
-        legend('Location', 'best');
+        
         grid on;
 
-        text(0.95, 0.95, sprintf('JS=%.3f', metrics.js_divergence(i_t)), ...
-            'Units', 'normalized', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top');
+        %text(0.95, 0.95, sprintf('JS=%.3f', metrics.js_divergence(i_t)), ...
+        %    'Units', 'normalized', 'HorizontalAlignment', 'right', 'VerticalAlignment', 'top');
 
         % CDF subplot
-        subplot(2, length(t_select), length(t_select) + j);
+        figure(fig_KS);
+        subplot(length(t_select), 1, j);
         [f_p, x_p] = ecdf(y_p);
         [f_l, x_l] = ecdf(y_l);
-        plot(x_p, f_p, 'b-', 'LineWidth', 2);
+        plot(x_p, f_p, 'b-', 'LineWidth', 2, 'DisplayName', 'Power');
         hold on;
-        plot(x_l, f_l, 'r-', 'LineWidth', 2);
+        plot(x_l, f_l, 'r-', 'LineWidth', 2, 'DisplayName', 'Linear');
         xlabel('Yield [g]');
-        if j == 1
-            ylabel('CDF');
+        ylabel('CDF');
+        
+        if j == length(t_select)
+            legend('Location', 'southeast');
         end
         title(sprintf('KS = %.3f', metrics.ks_stat(i_t)));
         grid on;
     end
 
-    sgtitle('Distribution Evolution Over Time (PDF top, CDF bottom)', 'FontSize', 14);
+    %sgtitle('Distribution Evolution Over Time (PDF top, CDF bottom)', 'FontSize', 14);
 
     if save_figs
-        saveas(fig_dist, fullfile(save_path, ['distribution.' file_format]));
+        saveas(fig_dist, fullfile(save_path, ['distribution' save_name_suffix '.' file_format]));
+        saveas(fig_KS, fullfile(save_path, ['ks_evolution' save_name_suffix '.' file_format]));
     end
 end
 
@@ -282,7 +307,7 @@ if ismember('probability', figures_to_plot)
     grid on;
 
     if save_figs
-        saveas(fig_prob, fullfile(save_path, ['probability.' file_format]));
+        saveas(fig_prob, fullfile(save_path, ['probability' save_name_suffix '.' file_format]));
     end
 end
 
@@ -317,10 +342,10 @@ if ismember('final_yield', figures_to_plot)
     ylim(lims);
     grid on;
 
-    sgtitle(sprintf('Final Yield Comparison at t = %.0f min', ExtractionTime), 'FontSize', 14);
+    %sgtitle(sprintf('Final Yield Comparison at t = %.0f min', ExtractionTime), 'FontSize', 14);
 
     if save_figs
-        saveas(fig_final, fullfile(save_path, ['final_yield.' file_format]));
+        saveas(fig_final, fullfile(save_path, ['final_yield' save_name_suffix '.' file_format]));
     end
 end
 

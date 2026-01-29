@@ -10,9 +10,9 @@ function F = buildIntegrator(varargin)
     options = struct;
 
     if(numel(varargin) > 2)
-        options.tf = varargin{3};
+        tf = varargin{3};
     else
-        options.tf = 1;
+        tf = 1;
     end
 
     if(numel(varargin) > 3)
@@ -36,7 +36,11 @@ function F = buildIntegrator(varargin)
     args_str = {'x','u'};
 
     
-    F = integrator('F', method, DAE, options);
+    t0 = 0;
+    % Suppress CasADi deprecation warning (using new API format)
+    w = warning('off', 'all');
+    F = integrator('F', method, DAE, t0, tf, options);
+    warning(w);
     F_res = F('x0', x, 'p', p);
     
     F = Function('F', args, {F_res.xf}, args_str, {'x_next'});

@@ -1,5 +1,4 @@
-function xdot = modelSFE_power_with_params(x, p, mask, dt, epsi_mask, one_minus_epsi_mask, ...
-    k_w0, a_w, b_w, n_k)
+function xdot = modelSFE_power_with_params(x, p, mask, dt, epsi_mask, one_minus_epsi_mask, varargin)
 % MODELSFE_POWER_WITH_PARAMS
 % SFE Model using Power (two-kinetic) extraction model with EXPLICIT parameters.
 % This allows uncertainty propagation by passing different parameter values.
@@ -12,14 +11,57 @@ function xdot = modelSFE_power_with_params(x, p, mask, dt, epsi_mask, one_minus_
 %   epsi_mask           - Precomputed epsi .* mask
 %   one_minus_epsi_mask - Precomputed 1 - epsi .* mask
 %   k_w0, a_w, b_w, n_k - Power model kinetic parameters
+%   n_param             - Number of base parameters when passing packed vector p
 
 import casadi.*
 
 %% Unpack inputs
-T_u        = p{1};
-P_u        = p{2};
-F_u        = p{3};
-parameters = p(4:end);
+if numel(varargin) == 1
+    n_param = varargin{1};
+    if iscell(p)
+        T_u = p{1};
+        P_u = p{2};
+        F_u = p{3};
+        parameters = p(4:3+n_param);
+        theta = p(4+n_param:end);
+        if iscell(theta)
+            theta = cell2mat(theta);
+        end
+    else
+        T_u = p(1);
+        P_u = p(2);
+        F_u = p(3);
+        parameters = num2cell(p(4:3+n_param));
+        theta = p(4+n_param:end);
+    end
+    if numel(theta) ~= 4
+        error('modelSFE_power_with_params:thetaSize', ...
+            'Expected 4 theta parameters, got %d.', numel(theta));
+    end
+    k_w0 = theta(1);
+    a_w = theta(2);
+    b_w = theta(3);
+    n_k = theta(4);
+elseif numel(varargin) == 4
+    k_w0 = varargin{1};
+    a_w = varargin{2};
+    b_w = varargin{3};
+    n_k = varargin{4};
+    if iscell(p)
+        T_u = p{1};
+        P_u = p{2};
+        F_u = p{3};
+        parameters = p(4:end);
+    else
+        T_u = p(1);
+        P_u = p(2);
+        F_u = p(3);
+        parameters = num2cell(p(4:end));
+    end
+else
+    error('modelSFE_power_with_params:args', ...
+        'Expected n_param or explicit kinetic parameters.');
+end
 
 %% Parameters
 C0solid       = parameters{2};

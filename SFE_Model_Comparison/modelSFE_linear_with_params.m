@@ -1,5 +1,4 @@
-function xdot = modelSFE_linear_with_params(x, p, mask, dt, epsi_mask, one_minus_epsi_mask, ...
-    a_Di, b_Di, c_Di, a_Ups, b_Ups, c_Ups)
+function xdot = modelSFE_linear_with_params(x, p, mask, dt, epsi_mask, one_minus_epsi_mask, varargin)
 % MODELSFE_LINEAR_WITH_PARAMS
 % SFE Model using Linear extraction model with EXPLICIT parameters.
 % This allows uncertainty propagation by passing different parameter values.
@@ -17,10 +16,56 @@ function xdot = modelSFE_linear_with_params(x, p, mask, dt, epsi_mask, one_minus
 import casadi.*
 
 %% Unpack inputs
-T_u        = p{1};
-P_u        = p{2};
-F_u        = p{3};
-parameters = p(4:end);
+if numel(varargin) == 1
+    n_param = varargin{1};
+    if iscell(p)
+        T_u = p{1};
+        P_u = p{2};
+        F_u = p{3};
+        parameters = p(4:3+n_param);
+        theta = p(4+n_param:end);
+        if iscell(theta)
+            theta = cell2mat(theta);
+        end
+    else
+        T_u = p(1);
+        P_u = p(2);
+        F_u = p(3);
+        parameters = num2cell(p(4:3+n_param));
+        theta = p(4+n_param:end);
+    end
+    if numel(theta) ~= 6
+        error('modelSFE_linear_with_params:thetaSize', ...
+            'Expected 6 theta parameters, got %d.', numel(theta));
+    end
+    a_Di = theta(1);
+    b_Di = theta(2);
+    c_Di = theta(3);
+    a_Ups = theta(4);
+    b_Ups = theta(5);
+    c_Ups = theta(6);
+elseif numel(varargin) == 6
+    a_Di = varargin{1};
+    b_Di = varargin{2};
+    c_Di = varargin{3};
+    a_Ups = varargin{4};
+    b_Ups = varargin{5};
+    c_Ups = varargin{6};
+    if iscell(p)
+        T_u = p{1};
+        P_u = p{2};
+        F_u = p{3};
+        parameters = p(4:end);
+    else
+        T_u = p(1);
+        P_u = p(2);
+        F_u = p(3);
+        parameters = num2cell(p(4:end));
+    end
+else
+    error('modelSFE_linear_with_params:args', ...
+        'Expected n_param or explicit kinetic parameters.');
+end
 
 %% Parameters
 C0solid       = parameters{2};
