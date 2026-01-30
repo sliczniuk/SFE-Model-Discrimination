@@ -145,11 +145,14 @@ print(['AUC_scatter.png'],'-dpng','-r500'); close all;
 
 %%
 [int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, timeStep, finalTime, 'N_MC', 1000, 'Verbose', false, 'UseMap', true);
-plot_discrimination_results(results, 'Figures', {'divergence', 'distribution', 'final_yield'}, 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F667'); close all;
+plot_discrimination_results(results, 'Figures', {'divergence', 'distribution', 'final_yield'}, 'SaveFigs', false, 'SaveNameSuffix', '_P200_T30_F667'); close all;
 
 [int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, timeStep, finalTime, 'N_MC', 1000, 'Verbose', false, 'UseMap', true);
-plot_discrimination_results(results, 'Figures', {'divergence', 'distribution', 'final_yield'}, 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F333'); close all;
+%plot_discrimination_results(results, 'Figures', 'all');
+plot_discrimination_results(results, 'Figures', {'divergence', 'distribution', 'final_yield'}, 'SaveFigs', false, 'SaveNameSuffix', '_P200_T30_F333'); close all;
 
+%% Check if the rate measurments (diff yield) are autocorellated. Compute ACF for each trajectory and average
+Check_for_autocorrelation(results)
 
 
 

@@ -14,8 +14,10 @@ function plot_discrimination_results(results, varargin)
 %
 % Optional Name-Value Pairs:
 %   'Figures'        - Cell array of figure names to plot (default: 'all')
-%                      Options: 'divergence', 'divergence_cumulative', 'distribution',
-%                               'probability', 'final_yield', 'trajectories'
+%                      Yield-based: 'divergence', 'divergence_cumulative', 'distribution',
+%                                   'probability', 'final_yield', 'trajectories'
+%                      Rate-based:  'divergence_rate', 'distribution_rate', 'rate_trajectories',
+%                                   'rate_comparison'
 %   'SaveFigs'       - Save figures to disk (default: false)
 %   'SavePath'       - Path for saved figures (default: current directory)
 %   'FileFormat'     - Format for saved figures (default: 'png')
@@ -44,7 +46,8 @@ save_name_suffix = p.Results.SaveNameSuffix;
 
 if ischar(figures_to_plot) && strcmp(figures_to_plot, 'all')
     figures_to_plot = {'divergence', 'divergence_cumulative', 'distribution', ...
-                       'probability', 'final_yield', 'trajectories'};
+                       'probability', 'final_yield', 'trajectories', ...
+                       'divergence_rate', 'distribution_rate', 'rate_trajectories', 'rate_comparison'};
 end
 
 %% Extract data from results
@@ -60,6 +63,17 @@ P0 = results.P0;
 F0 = results.F0;
 ExtractionTime = results.ExtractionTime;
 n_time_full = length(Time_full);
+
+% Extract rate data if available
+has_rate_data = isfield(results, 'Time_rate') && isfield(results, 'Rate_power_valid');
+if has_rate_data
+    Time_rate = results.Time_rate;
+    Rate_power_valid = results.Rate_power_valid;
+    Rate_linear_valid = results.Rate_linear_valid;
+    Rate_power_nom = results.Rate_power_nom;
+    Rate_linear_nom = results.Rate_linear_nom;
+    n_time_rate = length(Time_rate);
+end
 
 %% Figure: Trajectory ensemble with confidence bands
 if ismember('trajectories', figures_to_plot)
@@ -346,6 +360,195 @@ if ismember('final_yield', figures_to_plot)
 
     if save_figs
         saveas(fig_final, fullfile(save_path, ['final_yield' save_name_suffix '.' file_format]));
+    end
+end
+
+%% ========== RATE-BASED FIGURES ==========
+
+%% Figure: Rate trajectory ensemble
+if ismember('rate_trajectories', figures_to_plot) && has_rate_data
+    fig_rate_traj = figure('Name', 'Rate Trajectory Ensemble', 'Position', [100 100 1200 800]);
+
+    subplot(2, 2, 1);
+    n_plot = min(100, n_valid);
+    idx_plot = randperm(n_valid, n_plot);
+    for i = 1:n_plot
+        plot(Time_rate, Rate_power_valid(idx_plot(i), :), 'b-', 'LineWidth', 0.3, 'Color', [0 0 1 0.1]);
+        hold on;
+    end
+    plot(Time_rate, metrics.mean_rate_power, 'b-', 'LineWidth', 2, 'DisplayName', 'Mean Power');
+    plot(Time_rate, Rate_power_nom, 'b--', 'LineWidth', 1.5, 'DisplayName', 'Nominal Power');
+    xlabel('Time [min]');
+    ylabel('Rate [g/min]');
+    title('Power Model Extraction Rates');
+    legend('Location', 'northeast');
+    grid on;
+
+    subplot(2, 2, 2);
+    for i = 1:n_plot
+        plot(Time_rate, Rate_linear_valid(idx_plot(i), :), 'r-', 'LineWidth', 0.3, 'Color', [1 0 0 0.1]);
+        hold on;
+    end
+    plot(Time_rate, metrics.mean_rate_linear, 'r-', 'LineWidth', 2, 'DisplayName', 'Mean Linear');
+    plot(Time_rate, Rate_linear_nom, 'r--', 'LineWidth', 1.5, 'DisplayName', 'Nominal Linear');
+    xlabel('Time [min]');
+    ylabel('Rate [g/min]');
+    title('Linear Model Extraction Rates');
+    legend('Location', 'northeast');
+    grid on;
+
+    subplot(2, 2, 3);
+    plot(Time_rate, metrics.mean_rate_power, 'b-', 'LineWidth', 2, 'DisplayName', 'Mean Power');
+    hold on;
+    plot(Time_rate, metrics.mean_rate_linear, 'r-', 'LineWidth', 2, 'DisplayName', 'Mean Linear');
+    xlabel('Time [min]');
+    ylabel('Rate [g/min]');
+    title('Mean Extraction Rates');
+    legend('Location', 'northeast');
+    grid on;
+
+    subplot(2, 2, 4);
+    diff_rates = Rate_power_valid - Rate_linear_valid;
+    mean_diff_rate = mean(diff_rates, 1);
+    ci_diff_rate = [prctile(diff_rates, 2.5, 1); prctile(diff_rates, 97.5, 1)];
+
+    fill([Time_rate, fliplr(Time_rate)], [ci_diff_rate(1,:), fliplr(ci_diff_rate(2,:))], ...
+        [0.5 0 0.5], 'FaceAlpha', 0.3, 'EdgeColor', 'none');
+    hold on;
+    plot(Time_rate, mean_diff_rate, 'm-', 'LineWidth', 2);
+    yline(0, 'k--', 'LineWidth', 1);
+    xlabel('Time [min]');
+    ylabel('Rate Diff (Power - Linear) [g/min]');
+    title('Rate Difference with 95% CI');
+    grid on;
+
+    if save_figs
+        saveas(fig_rate_traj, fullfile(save_path, ['rate_trajectories' save_name_suffix '.' file_format]));
+    end
+end
+
+%% Figure: Rate-based divergence metrics
+if ismember('divergence_rate', figures_to_plot) && has_rate_data
+    fig_div_rate = figure('Name', 'Rate-Based Divergence Metrics', 'Position', [200 200 600 1000]);
+
+    subplot(3, 1, 1);
+    plot(Time_rate, metrics.js_rate, 'k-', 'LineWidth', 2);
+    hold on;
+    xline(metrics.js_rate_max_time, 'r--', sprintf('Max=%.3f', metrics.js_rate_max));
+    xlabel('Time [min]');
+    ylabel('JS Divergence [nats]');
+    title('Rate-Based Jensen-Shannon Divergence');
+    grid on;
+
+    subplot(3, 1, 2);
+    plot(Time_rate, metrics.ks_rate, 'g-', 'LineWidth', 2);
+    hold on;
+    xline(metrics.ks_rate_max_time, 'r--', sprintf('Max=%.3f', metrics.ks_rate_max));
+    xlabel('Time [min]');
+    ylabel('KS Statistic');
+    title('Rate-Based Kolmogorov-Smirnov Statistic');
+    grid on;
+
+    subplot(3, 1, 3);
+    plot(Time_rate, metrics.auc_rate, 'm-', 'LineWidth', 2);
+    hold on;
+    yline(0.5, 'k--', 'No Discrimination', 'LineWidth', 1);
+    xline(metrics.auc_rate_max_time, 'r--', sprintf('Max=%.3f', metrics.auc_rate_max));
+    xlabel('Time [min]');
+    ylabel('AUC-ROC');
+    title('Rate-Based AUC-ROC');
+    ylim([0.4, 1]);
+    grid on;
+
+    if save_figs
+        saveas(fig_div_rate, fullfile(save_path, ['divergence_rate' save_name_suffix '.' file_format]));
+    end
+end
+
+%% Figure: Rate distribution evolution
+if ismember('distribution_rate', figures_to_plot) && has_rate_data
+    fig_dist_rate = figure('Name', 'Rate Distribution Evolution', 'Position', [200 200 600 1400]);
+
+    t_select = [3, round(n_time_rate/4), round(2*n_time_rate/4), round(3*n_time_rate/4), n_time_rate];
+    t_select = unique(max(t_select, 1));
+
+    for j = 1:length(t_select)
+        subplot(length(t_select), 1, j);
+
+        i_t = t_select(j);
+        r_p = Rate_power_valid(:, i_t);
+        r_l = Rate_linear_valid(:, i_t);
+
+        edges = linspace(min([r_p; r_l])*0.95, max([r_p; r_l])*1.05, 30);
+
+        histogram(r_p, edges, 'FaceColor', 'b', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Power');
+        hold on;
+        histogram(r_l, edges, 'FaceColor', 'r', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Linear');
+
+        title(sprintf('t = %.0f min, JS_{rate}=%.3f', Time_rate(i_t), metrics.js_rate(i_t)));
+        xlabel('Rate [g/min]');
+        ylabel('PDF');
+
+        if j == length(t_select)
+            legend('Location', 'northeast');
+        end
+        grid on;
+    end
+
+    if save_figs
+        saveas(fig_dist_rate, fullfile(save_path, ['distribution_rate' save_name_suffix '.' file_format]));
+    end
+end
+
+%% Figure: Yield vs Rate comparison
+if ismember('rate_comparison', figures_to_plot) && has_rate_data
+    fig_comp = figure('Name', 'Yield vs Rate Divergence Comparison', 'Position', [200 200 1000 800]);
+
+    subplot(2, 2, 1);
+    plot(Time_full, metrics.js_divergence, 'b-', 'LineWidth', 2, 'DisplayName', 'Yield-based');
+    hold on;
+    plot(Time_rate, metrics.js_rate, 'r-', 'LineWidth', 2, 'DisplayName', 'Rate-based');
+    xlabel('Time [min]');
+    ylabel('JS Divergence [nats]');
+    title('JS Divergence: Yield vs Rate');
+    legend('Location', 'best');
+    grid on;
+
+    subplot(2, 2, 2);
+    plot(Time_full, metrics.ks_stat, 'b-', 'LineWidth', 2, 'DisplayName', 'Yield-based');
+    hold on;
+    plot(Time_rate, metrics.ks_rate, 'r-', 'LineWidth', 2, 'DisplayName', 'Rate-based');
+    xlabel('Time [min]');
+    ylabel('KS Statistic');
+    title('KS Statistic: Yield vs Rate');
+    legend('Location', 'best');
+    grid on;
+
+    subplot(2, 2, 3);
+    plot(Time_full, metrics.auc, 'b-', 'LineWidth', 2, 'DisplayName', 'Yield-based');
+    hold on;
+    plot(Time_rate, metrics.auc_rate, 'r-', 'LineWidth', 2, 'DisplayName', 'Rate-based');
+    yline(0.5, 'k--', 'No Discrimination');
+    xlabel('Time [min]');
+    ylabel('AUC-ROC');
+    title('AUC-ROC: Yield vs Rate');
+    legend('Location', 'best');
+    ylim([0.4, 1]);
+    grid on;
+
+    subplot(2, 2, 4);
+    bar_data = [metrics.js_integrated, metrics.js_rate_integrated; ...
+                metrics.ks_integrated, metrics.ks_rate_integrated; ...
+                metrics.auc_integrated, metrics.auc_rate_integrated];
+    bar(bar_data);
+    set(gca, 'XTickLabel', {'JS', 'KS', 'AUC'});
+    legend('Yield-based', 'Rate-based', 'Location', 'best');
+    ylabel('Integrated Value');
+    title('Integrated Metrics Comparison');
+    grid on;
+
+    if save_figs
+        saveas(fig_comp, fullfile(save_path, ['rate_comparison' save_name_suffix '.' file_format]));
     end
 end
 

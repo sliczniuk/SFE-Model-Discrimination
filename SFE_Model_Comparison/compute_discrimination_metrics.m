@@ -24,16 +24,26 @@ function [max_KS, integrated_JS, Time_ks_max, results] = compute_discrimination_
 %   'UseMap'  - Use CasADi map over samples (default: true)
 %
 % Outputs:
-%   max_KS       - Maximum KS statistic over trajectory
-%   integrated_JS - JS divergence integrated over time [nats*min]
+%   max_KS       - Maximum KS statistic over trajectory (yield-based)
+%   integrated_JS - JS divergence integrated over time [nats*min] (yield-based)
+%   Time_ks_max  - Time at which max KS occurs [min]
 %   results      - Struct containing full results:
-%                  .Time           - Time vector [min]
-%                  .Y_power_valid  - Valid Power model trajectories
-%                  .Y_linear_valid - Valid Linear model trajectories
-%                  .Y_power_nom    - Nominal Power trajectory
-%                  .Y_linear_nom   - Nominal Linear trajectory
-%                  .metrics        - Time-pointwise metrics struct
-%                  .n_valid        - Number of valid MC samples
+%                  .Time              - Time vector for yields [min]
+%                  .Y_power_valid     - Valid Power model yield trajectories
+%                  .Y_linear_valid    - Valid Linear model yield trajectories
+%                  .Y_power_nom       - Nominal Power yield trajectory
+%                  .Y_linear_nom      - Nominal Linear yield trajectory
+%                  .Time_rate         - Time vector for rates [min] (midpoints)
+%                  .Rate_power_valid  - Valid Power model rate trajectories
+%                  .Rate_linear_valid - Valid Linear model rate trajectories
+%                  .Rate_power_nom    - Nominal Power rate trajectory
+%                  .Rate_linear_nom   - Nominal Linear rate trajectory
+%                  .metrics           - Time-pointwise metrics struct:
+%                      Yield-based: js_divergence, ks_stat, auc, kl_*, overlap_coef
+%                      Rate-based:  js_rate, ks_rate, auc_rate, kl_rate_*, overlap_rate
+%                      Integrated:  js_integrated, js_rate_integrated, etc.
+%                      Max values:  js_max, js_rate_max, with _time suffix
+%                  .n_valid           - Number of valid MC samples
 %
 % Example:
 %   [max_KS, int_JS] = compute_discrimination_metrics(303, 150, 5e-5, 5, 600);
@@ -283,6 +293,22 @@ if verbose
     fprintf('  Valid samples: %d/%d\n', n_valid, N_MC);
 end
 
+%% Compute rate trajectories via forward difference
+% Rate(t) = (Y(t+1) - Y(t)) / dt
+dt_min = timeStep;  % Time step in minutes
+Rate_power_valid = diff(Y_power_valid, 1, 2) / dt_min;  % [n_valid x (n_time-1)]
+Rate_linear_valid = diff(Y_linear_valid, 1, 2) / dt_min;
+Time_rate = Time(1:end-1) + dt_min/2;  % Midpoint times for rates
+n_time_rate = length(Time_rate);
+
+% Nominal rates
+Rate_power_nom = diff(Y_power_nom) / dt_min;
+Rate_linear_nom = diff(Y_linear_nom) / dt_min;
+
+if verbose
+    fprintf('  Computing rate-based metrics...\n');
+end
+
 %% Compute divergence metrics
 Time_full = Time;
 n_time_full = length(Time_full);
@@ -368,6 +394,63 @@ metrics.final_diff_std = std(Y_power_valid(:, end) - Y_linear_valid(:, end));
 metrics.final_diff_ci95 = [prctile(Y_power_valid(:, end) - Y_linear_valid(:, end), 2.5), ...
                            prctile(Y_power_valid(:, end) - Y_linear_valid(:, end), 97.5)];
 
+%% Compute rate-based divergence metrics
+metrics.Time_rate = Time_rate;
+
+% Preallocate rate-based metrics
+metrics.js_rate = zeros(1, n_time_rate);
+metrics.kl_rate_power_linear = zeros(1, n_time_rate);
+metrics.kl_rate_linear_power = zeros(1, n_time_rate);
+metrics.ks_rate = zeros(1, n_time_rate);
+metrics.ks_rate_pval = zeros(1, n_time_rate);
+metrics.auc_rate = zeros(1, n_time_rate);
+metrics.overlap_rate = zeros(1, n_time_rate);
+
+metrics.mean_rate_power = zeros(1, n_time_rate);
+metrics.mean_rate_linear = zeros(1, n_time_rate);
+metrics.std_rate_power = zeros(1, n_time_rate);
+metrics.std_rate_linear = zeros(1, n_time_rate);
+
+for i_t = 1:n_time_rate
+    r_p = Rate_power_valid(:, i_t);
+    r_l = Rate_linear_valid(:, i_t);
+
+    metrics.mean_rate_power(i_t) = mean(r_p);
+    metrics.mean_rate_linear(i_t) = mean(r_l);
+    metrics.std_rate_power(i_t) = std(r_p);
+    metrics.std_rate_linear(i_t) = std(r_l);
+
+    [~, p_ks, ks_stat] = kstest2(r_p, r_l);
+    metrics.ks_rate(i_t) = ks_stat;
+    metrics.ks_rate_pval(i_t) = p_ks;
+
+    if std(r_p) < 1e-12 && std(r_l) < 1e-12
+        continue;
+    end
+
+    [kl_pl, kl_lp, js, overlap] = compute_divergences_local(r_p, r_l);
+    metrics.kl_rate_power_linear(i_t) = kl_pl;
+    metrics.kl_rate_linear_power(i_t) = kl_lp;
+    metrics.js_rate(i_t) = js;
+    metrics.overlap_rate(i_t) = overlap;
+
+    metrics.auc_rate(i_t) = compute_auc_local(r_p, r_l);
+end
+
+%% Compute integrated and max rate-based metrics
+metrics.js_rate_integrated = trapz(Time_rate, metrics.js_rate);
+metrics.ks_rate_integrated = trapz(Time_rate, metrics.ks_rate);
+metrics.auc_rate_integrated = trapz(Time_rate, metrics.auc_rate);
+
+[metrics.js_rate_max, idx_js_rate_max] = max(metrics.js_rate);
+metrics.js_rate_max_time = Time_rate(idx_js_rate_max);
+
+[metrics.ks_rate_max, idx_ks_rate_max] = max(metrics.ks_rate);
+metrics.ks_rate_max_time = Time_rate(idx_ks_rate_max);
+
+[metrics.auc_rate_max, idx_auc_rate_max] = max(metrics.auc_rate);
+metrics.auc_rate_max_time = Time_rate(idx_auc_rate_max);
+
 %% Outputs
 max_KS = metrics.ks_max;
 integrated_JS = metrics.js_integrated;
@@ -385,6 +468,12 @@ if nargout >= 3
     results.Y_linear_valid = Y_linear_valid;
     results.Y_power_nom = Y_power_nom;
     results.Y_linear_nom = Y_linear_nom;
+    % Rate trajectories
+    results.Time_rate = Time_rate;
+    results.Rate_power_valid = Rate_power_valid;
+    results.Rate_linear_valid = Rate_linear_valid;
+    results.Rate_power_nom = Rate_power_nom;
+    results.Rate_linear_nom = Rate_linear_nom;
     results.metrics = metrics;
     results.theta_power_samples = theta_power_samples;
     results.theta_linear_samples = theta_linear_samples;
@@ -393,8 +482,12 @@ if nargout >= 3
 end
 
 if verbose
+    fprintf('  --- Yield-based metrics ---\n');
     fprintf('  Max KS: %.4f at t=%.0f min\n', max_KS, metrics.ks_max_time);
     fprintf('  Integrated JS: %.4f nats*min\n', integrated_JS);
+    fprintf('  --- Rate-based metrics ---\n');
+    fprintf('  Max JS (rate): %.4f at t=%.0f min\n', metrics.js_rate_max, metrics.js_rate_max_time);
+    fprintf('  Integrated JS (rate): %.4f nats*min\n', metrics.js_rate_integrated);
 end
 
 end
