@@ -41,6 +41,7 @@ function [max_KS, integrated_JS, Time_ks_max, results] = compute_discrimination_
 %                  .metrics           - Time-pointwise metrics struct:
 %                      Yield-based: js_divergence, ks_stat, auc, kl_*, overlap_coef
 %                      Rate-based:  js_rate, ks_rate, auc_rate, kl_rate_*, overlap_rate
+%                      Trajectory:  js_traj, kl_traj_* (yield) and js_traj_rate, kl_traj_rate_* (rate)
 %                      Integrated:  js_integrated, js_rate_integrated, etc.
 %                      Max values:  js_max, js_rate_max, with _time suffix
 %                  .n_valid           - Number of valid MC samples
@@ -335,6 +336,7 @@ metrics.std_power = zeros(1, n_time_full);
 metrics.std_linear = zeros(1, n_time_full);
 metrics.ci95_power = zeros(2, n_time_full);
 metrics.ci95_linear = zeros(2, n_time_full);
+metrics.kde_yield = cell(1, n_time_full);
 
 for i_t = 1:n_time_full
     y_p = Y_power_valid(:, i_t);
@@ -353,14 +355,16 @@ for i_t = 1:n_time_full
     metrics.ks_pval(i_t) = p_ks;
 
     if i_t == 1 || (std(y_p) < 1e-10 && std(y_l) < 1e-10)
+        metrics.kde_yield{i_t} = [];
         continue;
     end
 
-    [kl_pl, kl_lp, js, overlap] = compute_divergences_local(y_p, y_l);
+    [kl_pl, kl_lp, js, overlap, kde] = compute_divergences_local(y_p, y_l);
     metrics.kl_power_linear(i_t) = kl_pl;
     metrics.kl_linear_power(i_t) = kl_lp;
     metrics.js_divergence(i_t) = js;
     metrics.overlap_coef(i_t) = overlap;
+    metrics.kde_yield{i_t} = kde;
 
     % Compute AUC-ROC: treat as binary classification (Power=1, Linear=0)
     metrics.auc(i_t) = compute_auc_local(y_p, y_l);
@@ -405,6 +409,7 @@ metrics.ks_rate = zeros(1, n_time_rate);
 metrics.ks_rate_pval = zeros(1, n_time_rate);
 metrics.auc_rate = zeros(1, n_time_rate);
 metrics.overlap_rate = zeros(1, n_time_rate);
+metrics.kde_rate = cell(1, n_time_rate);
 
 metrics.mean_rate_power = zeros(1, n_time_rate);
 metrics.mean_rate_linear = zeros(1, n_time_rate);
@@ -425,17 +430,31 @@ for i_t = 1:n_time_rate
     metrics.ks_rate_pval(i_t) = p_ks;
 
     if std(r_p) < 1e-12 && std(r_l) < 1e-12
+        metrics.kde_rate{i_t} = [];
         continue;
     end
 
-    [kl_pl, kl_lp, js, overlap] = compute_divergences_local(r_p, r_l);
+    [kl_pl, kl_lp, js, overlap, kde] = compute_divergences_local(r_p, r_l);
     metrics.kl_rate_power_linear(i_t) = kl_pl;
     metrics.kl_rate_linear_power(i_t) = kl_lp;
     metrics.js_rate(i_t) = js;
     metrics.overlap_rate(i_t) = overlap;
+    metrics.kde_rate{i_t} = kde;
 
     metrics.auc_rate(i_t) = compute_auc_local(r_p, r_l);
 end
+
+%% Trajectory-level divergence metrics (joint likelihood)
+% Uses product of KDE likelihoods across time (assumes conditional independence)
+if verbose
+    fprintf('  Computing trajectory-level divergence metrics...\n');
+end
+
+[metrics.js_traj, metrics.kl_traj_power_linear, metrics.kl_traj_linear_power] = ...
+    compute_trajectory_divergence_local(Y_power_valid, Y_linear_valid, metrics.kde_yield);
+
+[metrics.js_traj_rate, metrics.kl_traj_rate_power_linear, metrics.kl_traj_rate_linear_power] = ...
+    compute_trajectory_divergence_local(Rate_power_valid, Rate_linear_valid, metrics.kde_rate);
 
 %% Compute integrated and max rate-based metrics
 metrics.js_rate_integrated = trapz(Time_rate, metrics.js_rate);
@@ -493,7 +512,8 @@ end
 end
 
 %% Local function: compute_divergences
-function [kl_pl, kl_lp, js, overlap] = compute_divergences_local(y_p, y_l)
+function [kl_pl, kl_lp, js, overlap, kde] = compute_divergences_local(y_p, y_l)
+    kde = [];
     y_all = [y_p; y_l];
     y_min = min(y_all);
     y_max = max(y_all);
@@ -516,6 +536,11 @@ function [kl_pl, kl_lp, js, overlap] = compute_divergences_local(y_p, y_l)
     eps_val = 1e-12;
     f_p = max(f_p, eps_val);
     f_l = max(f_l, eps_val);
+
+    kde.grid = y_grid;
+    kde.f_p = f_p;
+    kde.f_l = f_l;
+    kde.eps = eps_val;
 
     kl_pl = trapz(y_grid, f_p .* log(f_p ./ f_l));
     kl_lp = trapz(y_grid, f_l .* log(f_l ./ f_p));
@@ -559,4 +584,56 @@ function auc = compute_auc_local(y_p, y_l)
     % Ensure AUC is in [0.5, 1] by taking max with 1-AUC
     % (convention: AUC >= 0.5, flip if needed)
     auc = max(auc, 1 - auc);
+end
+
+%% Local function: compute trajectory-level divergence from KDEs
+function [js_traj, kl_pl_traj, kl_lp_traj] = compute_trajectory_divergence_local(samples_p, samples_l, kde_cells)
+    n_time = size(samples_p, 2);
+    n_valid = size(samples_p, 1);
+
+    js_traj = zeros(1, n_time);
+    kl_pl_traj = zeros(1, n_time);
+    kl_lp_traj = zeros(1, n_time);
+    js_bound = log(2);
+
+    logp_p = zeros(n_valid, 1);
+    logq_p = zeros(n_valid, 1);
+    logp_l = zeros(n_valid, 1);
+    logq_l = zeros(n_valid, 1);
+
+    for i_t = 1:n_time
+        kde = kde_cells{i_t};
+        if ~isempty(kde)
+            s_p = samples_p(:, i_t);
+            s_l = samples_l(:, i_t);
+
+            p_p = interp1(kde.grid, kde.f_p, s_p, 'linear', kde.eps);
+            q_p = interp1(kde.grid, kde.f_l, s_p, 'linear', kde.eps);
+            p_l = interp1(kde.grid, kde.f_p, s_l, 'linear', kde.eps);
+            q_l = interp1(kde.grid, kde.f_l, s_l, 'linear', kde.eps);
+
+            logp_p = logp_p + log(max(p_p, kde.eps));
+            logq_p = logq_p + log(max(q_p, kde.eps));
+            logp_l = logp_l + log(max(p_l, kde.eps));
+            logq_l = logq_l + log(max(q_l, kde.eps));
+        end
+
+        kl_pl_traj(i_t) = mean(logp_p - logq_p);
+        kl_lp_traj(i_t) = mean(logq_l - logp_l);
+
+        logm_p = log_mix_local(logp_p, logq_p);
+        logm_l = log_mix_local(logp_l, logq_l);
+
+        js_term_p = logp_p - logm_p;
+        js_term_l = logq_l - logm_l;
+        js_est = 0.5 * mean(js_term_p) + 0.5 * mean(js_term_l);
+        % JS divergence is bounded by log(2); clamp to guard numerical drift
+        js_traj(i_t) = min(js_est, js_bound);
+    end
+end
+
+%% Local function: stable log(0.5*exp(a) + 0.5*exp(b))
+function logm = log_mix_local(loga, logb)
+    m = max(loga, logb);
+    logm = m + log(0.5 * exp(loga - m) + 0.5 * exp(logb - m));
 end

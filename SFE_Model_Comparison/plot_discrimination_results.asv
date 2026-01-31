@@ -82,15 +82,15 @@ if ismember('trajectories', figures_to_plot)
 
     subplot(2, 1, 1);
     fill([Time_full, fliplr(Time_full)], [metrics.ci95_power(1,:), fliplr(metrics.ci95_power(2,:))], ...
-        'b', 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Power 95$\%$ CI');
+        'b', 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Power 95% CI');
     hold on;
     fill([Time_full, fliplr(Time_full)], [metrics.ci95_linear(1,:), fliplr(metrics.ci95_linear(2,:))], ...
-        'r', 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Linear 95$\%$ CI');
+        'r', 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Linear 95% CI');
     plot(Time_full, metrics.mean_power, 'b-', 'LineWidth', 2, 'DisplayName', 'Mean Power');
     plot(Time_full, metrics.mean_linear, 'r-', 'LineWidth', 2, 'DisplayName', 'Mean Linear');
     xlabel('Time [min]');
     ylabel('Yield [g]');
-    title('Mean Trajectories with 95$\%$ CI');
+    title('Mean Trajectories with 95% CI');
     legend('Location', 'southeast');
     grid on;
 
@@ -103,7 +103,6 @@ if ismember('trajectories', figures_to_plot)
     title('Mean Extraction Rates');
     legend('Location', 'northeast');
     grid on;
-    set(gca,'fontsize', 14) 
 
     %sgtitle(sprintf('Trajectory Ensemble: T=%.0fK, P=%.0fbar, F=%.1e m3/s (N=%d)', T0, P0, F0, n_valid), 'FontSize', 12);
 
@@ -153,7 +152,6 @@ if ismember('distribution', figures_to_plot)
         end
         title(sprintf('KS = %.3f', metrics.ks_stat(i_t)));
         grid on;
-        set(gca,'fontsize', 14) 
     end
 
     if save_figs
@@ -174,11 +172,10 @@ if ismember('probability', figures_to_plot)
         'y', 'FaceAlpha', 0.2, 'EdgeColor', 'none');
 
     xlabel('Time [min]');
-    ylabel('P(Power $\leq$ Linear) [$\%$]');
+    ylabel('P(Power > Linear) [%]');
     title('Probability that Power Model Predicts Higher Yield');
     ylim([0 100]);
     grid on;
-    set(gca,'fontsize', 14) 
 
     if save_figs
         saveas(fig_prob, fullfile(save_path, ['probability' save_name_suffix '.' file_format]));
@@ -215,7 +212,6 @@ if ismember('final_yield', figures_to_plot)
     xlim(lims);
     ylim(lims);
     grid on;
-    set(gca,'fontsize', 14) 
 
     %sgtitle(sprintf('Final Yield Comparison at t = %.0f min', ExtractionTime), 'FontSize', 14);
 
@@ -245,7 +241,7 @@ if ismember('distribution_rate', figures_to_plot) && has_rate_data
         histogram(r_p, edges, 'FaceColor', 'b', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Power');
         hold on;
         histogram(r_l, edges, 'FaceColor', 'r', 'FaceAlpha', 0.5, 'Normalization', 'pdf', 'DisplayName', 'Linear');
-        title(sprintf('t = %.0f min, JS$_{rate}$ = %.3f', Time_rate(i_t), metrics.js_rate(i_t)));
+        title(sprintf('t = %.0f min, JS_{rate}=%.3f', Time_rate(i_t), metrics.js_rate(i_t)));
         xlabel('Rate [g/min]');
         ylabel('PDF');
         if j == length(t_select)
@@ -265,9 +261,8 @@ if ismember('distribution_rate', figures_to_plot) && has_rate_data
         if j == length(t_select)
             legend('Location', 'southeast');
         end
-        title(sprintf('KS$_{rate}$ = %.3f', metrics.ks_rate(i_t)), 'Interpreter','latex');
+        title(sprintf('KS_{rate} = %.3f', metrics.ks_rate(i_t)));
         grid on;
-        set(gca,'fontsize', 14) 
     end
 
     if save_figs
@@ -286,9 +281,8 @@ if ismember('rate_comparison', figures_to_plot) && has_rate_data
     xlabel('Time [min]');
     ylabel('JS Divergence [nats]');
     title('JS Divergence: Yield vs Rate');
-    %legend('Location', 'best');
+    legend('Location', 'best');
     grid on;
-    set(gca,'fontsize', 14) 
 
     subplot(2, 2, 2);
     plot(Time_full, metrics.ks_stat, 'b-', 'LineWidth', 2, 'DisplayName', 'Yield-based');
@@ -297,22 +291,20 @@ if ismember('rate_comparison', figures_to_plot) && has_rate_data
     xlabel('Time [min]');
     ylabel('KS Statistic');
     title('KS Statistic: Yield vs Rate');
-    %legend('Location', 'best');
+    legend('Location', 'best');
     grid on;
-    set(gca,'fontsize', 14) 
 
     subplot(2, 2, 3);
     plot(Time_full, metrics.auc, 'b-', 'LineWidth', 2, 'DisplayName', 'Yield-based');
     hold on;
     plot(Time_rate, metrics.auc_rate, 'r-', 'LineWidth', 2, 'DisplayName', 'Rate-based');
-    yline(0.5, 'k--', 'No Discrimination', 'HandleVisibility','off');
+    yline(0.5, 'k--', 'No Discrimination');
     xlabel('Time [min]');
-    ylabel('AUC');
-    title('AUC: Yield vs Rate');
-    legend('Location', 'best', 'Box','off');
+    ylabel('AUC-ROC');
+    title('AUC-ROC: Yield vs Rate');
+    legend('Location', 'best');
     ylim([0.4, 1]);
     grid on;
-    set(gca,'fontsize', 14) 
 
     subplot(2, 2, 4);
     plot(Time_full, metrics.kl_power_linear, 'b-', 'LineWidth', 2, 'DisplayName', 'Yield KL(P||L)');
@@ -323,9 +315,8 @@ if ismember('rate_comparison', figures_to_plot) && has_rate_data
     xlabel('Time [min]');
     ylabel('KL Divergence [nats]');
     title('KL Divergence: Yield vs Rate');
+    legend('Location', 'best');
     grid on;
-    set(gca,'fontsize', 14) 
-    legend('Location', 'north', 'Box','off','NumColumns',2, 'FontSize', 10);
 
     if save_figs
         saveas(fig_comp, fullfile(save_path, ['rate_comparison' save_name_suffix '.' file_format]));
