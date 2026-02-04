@@ -1,0 +1,285 @@
+% ---------------------------------------------------------------
+% Preamble
+% ---------------------------------------------------------------
+%\documentclass[a4paper,fleqn,longmktitle]{cas-sc}
+\documentclass[a4paper,fleqn]{cas-dc}
+%\documentclass[a4paper]{cas-dc}
+%\documentclass[a4paper]{cas-sc}
+% ---------------------------------------------------------------
+% Make margins bigger to fit annotations. Use 1, 2 and 3. TO be removed later
+%\paperwidth=\dimexpr \paperwidth + 6cm\relax
+%\oddsidemargin=\dimexpr\oddsidemargin + 3cm\relax
+%\evensidemargin=\dimexpr\evensidemargin + 3cm\relax
+%\marginparwidth=\dimexpr \marginparwidth + 3cm\relax
+% -------------------------------------------------------------------- 
+% Packages
+% --------------------------------------------------------------------
+% Figure packages
+\usepackage{graphicx,float}
+\usepackage{adjustbox}
+% Text, input, formatting, and language-related packages
+\usepackage[T1]{fontenc}
+\usepackage{subcaption}
+\usepackage{paralist}
+%\usepackage{csvsimple}
+
+% TODO package
+\usepackage[bordercolor=gray!20,backgroundcolor=blue!10,linecolor=black,textsize=footnotesize,textwidth=1in]{todonotes}
+\setlength{\marginparwidth}{1in}
+% \usepackage[utf8]{inputenc}
+% \usepackage[nomath]{lmodern}
+
+% Margin and formatting specifications
+%\usepackage[authoryear]{natbib}
+\usepackage[sort]{natbib}
+\setcitestyle{square,numbers}
+
+ %\bibliographystyle{cas-model2-names}
+
+\usepackage{setspace}
+\usepackage{subfiles} % Best loaded last in the preamble
+
+% \usepackage[authoryear,longnamesfirst]{natbib}
+
+% Math packages
+\usepackage{amsmath, amsthm, amssymb, amsfonts, bm, nccmath, mathdots, mathtools, nccmath, bigints, ulem}
+
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usetikzlibrary{shapes.geometric,angles,quotes,calc}
+
+\usepackage{placeins}
+
+\usepackage[final]{pdfpages}
+
+% --------------------------------------------------------------------
+% Packages Configurations
+\usepackage{enumitem}
+% --------------------------------------------------------------------
+% (General) General configurations and fixes
+\AtBeginDocument{\setlength{\FullWidth}{\textwidth}}	% Solves els-cas caption positioning issue
+\setlength{\parindent}{20pt}
+%\doublespacing
+% --------------------------------------------------------------------
+% Other Definitions
+% --------------------------------------------------------------------
+\graphicspath{{Figures/}}
+% --------------------------------------------------------------------
+% Environments
+% --------------------------------------------------------------------
+% ...
+
+% --------------------------------------------------------------------
+% Commands
+% --------------------------------------------------------------------
+
+% ==============================================================
+% ========================== DOCUMENT ==========================
+% ==============================================================
+\begin{document} 
+%  --------------------------------------------------------------------
+
+% ===================================================
+% METADATA
+% ===================================================
+\title[mode=title]{Design of experiment for model discrimination: SFE case, part I}                      
+\shorttitle{ODOE-DM}
+
+\shortauthors{OS}
+
+\author[1]{Oliwer Sliczniuk}[orcid=0000-0003-2593-5956]
+\ead{oliwer.sliczniuk@aalto.fi}
+\cormark[1]
+\credit{a}
+
+%\author[1]{Pekka Oinas}[orcid=0000-0002-0183-5558]
+%\credit{b}
+
+%\author[1]{Francesco Corona}[orcid=0000-0002-3615-1359]
+%\credit{c}
+
+\address[1]{Aalto University, School of Chemical Engineering, Espoo, 02150, Finland}
+%\address[2]{2}
+
+\cortext[cor1]{Corresponding author}
+
+% ===================================================
+% ABSTRACT
+% ===================================================
+\begin{abstract}
+This study investigates the process of chamomile oil extraction from flowers. A parameter-distributed model consisting of a set of partial differential equations is used to describe the governing mass transfer phenomena in a solid-fluid environment under supercritical conditions using carbon dioxide as a solvent. The concept of quasi-one-dimensional flow is applied to reduce the number of spatial dimensions. The flow is assumed to be uniform across any cross-section, although the area available for the fluid phase can vary along the extractor. The physical properties of the solvent are estimated from the Peng-Robinson equation of state. Based on the set of laboratory experiments performed under multiple constant operating conditions: $30 - 40^\circ C$, $100 - 200$ bar, and $3.33-6.67 \cdot 10^{-5}$ kg/s, two process models are developed. The goal of this work is to design an experiment to discriminate between two competing process models. Statistical methods, such as the Kolmogorov-Smirnov and Mann–Whitney U test, and Jensen–Shannon divergence, are used to discriminate between two models under the parameter uncertainty.
+
+\end{abstract}
+
+\begin{keywords}
+Supercritical extraction \sep Optimal design of experiment \sep Model discrimination \sep Mathematical modelling
+\end{keywords}
+
+% ===================================================
+% TITLE
+% ===================================================
+\maketitle
+
+% ===================================================
+% Section: Introduction
+% ===================================================
+
+\section{Introduction}
+
+\subfile{Sections/introduction_imp}
+
+\subfile{Sections/Literature_Review}
+
+% ===================================================
+% Section: Main
+% ===================================================
+
+\subfile{Sections/Model}
+
+%\subfile{Sections/RBF}
+
+\subfile{Sections/ODoE_MD}
+
+% ===================================================
+% Section: Summary
+% ===================================================
+
+%\section{Results}
+%\subfile{Sections/Results_DOE}
+
+\section{Conclusions} \label{CH: Conclusion}
+
+This work focus on model discrimination, which is a part of model development process. After several challenger models are developed, the champion model needs to be selected based on case-specific criteria. These might include model accuracy, complexity or predictive power. The predictive power can be tested on validation dataset, which it self can be a random subset of the development dataset or a new experiment to be yet performed. In the second case, it is beneficial to select such operating conditions that both models differ the most. Such design of an experiment 
+
+$$y(t_k) = Y_{true}(t_k) + \varepsilon_k, \qquad \varepsilon_k \sim \mathcal{N}(0, \sigma_{meas}^2)$$
+
+where Ytrue is whatever the real process produces, and $\sigma$ meas captures instrument precision (scale repeatability, sampling error, etc.). The noise at different times is assumed independent (the measurement device doesn't remember its previous error).
+
+Given a specific model M with specific parameters , the model predicts a trajectory YM(t; $\theta$). The likelihood of observing yobs given that model and those parameters is:
+
+$$p(\mathbf{y}{obs} \mid \boldsymbol{\theta}, M) = \prod{k=1}^{K} \frac{1}{\sqrt{2\pi},\sigma_{meas}} \exp!\Bigg(-\frac{\big(y(t_k) - Y_M(t_k;\boldsymbol{\theta})\big)^2}{2,\sigma_{meas}^2}\Bigg)$$
+
+The product is valid because the measurement errors $e_k$ are independent. Note: the model trajectories themselves are correlated in time, and that's fine — it's only the measurement noise that needs to be independent.
+
+Taking the log:
+
+$$\log p(\mathbf{y}{obs} \mid \boldsymbol{\theta}, M) = -\frac{K}{2}\log(2\pi\sigma{meas}^2) - \frac{1}{2\sigma_{meas}^2}\sum_{k=1}^{K}\big(y(t_k) - Y_M(t_k;\boldsymbol{\theta})\big)^2$$
+
+This is just the sum of squared residuals, scaled by measurement noise. Smaller residuals higher likelihood.
+
+$$p(\mathbf{y}{obs} \mid M) = \int p(\mathbf{y}{obs} \mid \boldsymbol{\theta}, M) ; p(\boldsymbol{\theta} \mid M) ; d\boldsymbol{\theta}$$
+
+This integral has no closed-form solution because YM(t; $\theta$) comes from a nonlinear ODE. But you can estimate it with Monte Carlo: you've already drawn N samples $\theta$(1), ..., $\theta$(N) from p($\theta$ | M) and simulated each one. The MC estimate is:
+
+$$p(\mathbf{y}{obs} \mid M) \approx \frac{1}{N}\sum{i=1}^{N} p(\mathbf{y}_{obs} \mid \boldsymbol{\theta}^{(i)}, M)$$
+
+This is a simple average of likelihoods across your MC samples. It works because the samples are drawn from the prior — this is called a prior predictive Monte Carlo estimator.
+
+The Bayes factor is the ratio of marginal likelihoods:
+
+$$B_{PL} = \frac{p(\mathbf{y}{obs} \mid M_P)}{p(\mathbf{y}{obs} \mid M_L)}$$
+
+In log form:
+
+$$\log B_{PL} = \log p(\mathbf{y}{obs} \mid M_P) - \log p(\mathbf{y}{obs} \mid M_L)$$
+
+log BPL > 0 - evidence favours Power
+log BPL < 0 - evidence favours Linear
+log BPL = 0 - data cannot distinguish
+Step 4: Numerical Computation (Log-Sum-Exp)
+The naive computation fails because the individual likelihoods p(yobs | $\theta$(i), M) involve exp(-SSR / 2$\sigma62$) where SSR is a sum of K squared terms. With K = 120 time points and $\sigma$ = 0.05, these exponentials are astronomically small numbers that underflow to zero in double precision.
+
+The solution is to work entirely in log space. For each MC sample i:
+
+$$\ell_i = \log p(\mathbf{y}{obs} \mid \boldsymbol{\theta}^{(i)}, M) = -\frac{K}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum{k=1}^{K}\big(y(t_k) - Y_M^{(i)}(t_k)\big)^2$$
+
+Then the log marginal likelihood is:
+
+$$\log p(\mathbf{y}{obs} \mid M) = \log\frac{1}{N}\sum{i=1}^{N}e^{\ell_i}$$
+
+This is computed via the log-sum-exp trick:
+
+$$\log\sum_{i=1}^{N}e^{\ell_i} = \ell_{max} + \log\sum_{i=1}^{N}e^{\ell_i - \ell_{max}}$$
+
+where lmax = maxi(li). The subtraction ensures the largest exponential is exp($\theta$) = 1, and the rest are < 1, avoiding overflow. Only samples with li very far below lmax underflow to zero, but those contribute negligibly to the sum anyway.
+
+Step 5: What This Estimator Actually Does Geometrically
+Think of each MC sample $\theta$(i) as producing a predicted trajectory curve YM(i)(t). The observation yobs is another curve. The likelihood li measures the squared distance between these two curves, weighted by 1/$\sigma^2$.
+
+The marginal likelihood then asks: across all plausible parameter settings, how close does this model's trajectory bundle come to the observation?
+
+If the model's trajectory bundle (your Y power valid ensemble) passes close to y obs, many samples have high likelihood → large marginal likelihood
+If the observation falls outside the bundle, all samples have low likelihood → small marginal likelihood
+The Bayes factor compares which model's bundle "reaches" the observation more easily.
+
+Why This Differs From Your Pointwise Metrics
+Your current approach does this at each time point independently:
+
+$$\text{Current: } \quad \text{KL}_{integrated} = \int_0^T \text{KL}\big(p(y,t \mid M_P) ;|; p(y,t \mid M_L)\big) , dt$$
+
+This treats the yield distribution at t=100 min and t=105 min as separate, unrelated comparisons. But in reality, a trajectory that is high at t=100 is almost certainly high at t=105 (strong temporal correlation).
+
+The trajectory Bayes factor operates on the joint distribution:
+
+$$\text{Trajectory BF: } \quad B_{PL} = \frac{p(y(t_1), y(t_2), \dots, y(t_K) \mid M_P)}{p(y(t_1), y(t_2), \dots, y(t_K) \mid M_L)}$$
+
+The MC samples encode the joint structure automatically — each row of Y power valid is a complete, physically consistent trajectory from the ODE. You never had to specify the cross-time covariance; it emerges from the simulation.
+
+This is precisely why the trajectory BF can give different answers: if two models have the same marginal distribution at every time point but differ in their correlation structure (e.g., one produces convex curves, the other concave), the pointwise KL would be zero everywhere, but the trajectory BF would still detect the difference.
+
+% ===================================================
+% Bibliography
+% ===================================================
+%% Loading bibliography style file
+\newpage
+%\bibliographystyle{model1-num-names}
+\bibliographystyle{unsrtnat}
+\bibliography{mybibfile}
+
+\clearpage \appendix \label{appendix}
+\section{Appendix} 
+\subsection{Parameter estimation of the challenger model}
+\subfile{Sections/App_3_Challanger_Model} \label{chap:Parameter_Estimation_Challanger}
+
+\onecolumn
+\subsection{Temporal evolution of output output distributions}
+\begin{figure*}[!b]
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[trim = 2.0cm 3.0cm 15.0cm 2.0cm,clip,width=\columnwidth]{Figures/Results/distribution_P200_T30_F333.png}
+		\caption{F=3.33e-5 kg/s}
+		\label{fig:Yield_low_F_evolution}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[trim = 2.0cm 3.0cm 15.0cm 2.0cm,clip,width=\columnwidth]{Figures/Results/distribution_P200_T30_F667.png}
+		\caption{F=6.67e-5 kg/s}
+		\label{fig:Yield_high_F_evolution}
+	\end{subfigure}
+	\caption{Temporal evolution of cumulative distribution at T=30$^\circ$ C, P=200 bar}
+	\label{fig:Yield_dist_evolution}
+\end{figure*} 
+
+\begin{figure*}[h]
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[trim = 3.0cm 3.0cm 15.0cm 2.0cm,clip,width=\columnwidth]{Figures/Results/distribution_rate_P200_T30_F333.png}
+		\caption{F=3.33e-5 kg/s}
+		\label{fig:Rate_low_F_evolution}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{0.45\textwidth}
+		\centering
+		\includegraphics[trim = 3.0cm 3.0cm 15.0cm 2.0cm,clip,width=\columnwidth]{Figures/Results/distribution_rate_P200_T30_F667.png}
+		\caption{F=6.67e-5 kg/s}
+		\label{fig:Rate_high_F_evolution}
+	\end{subfigure}
+	\caption{Temporal evolution of extraction rate distribution at T=30$^\circ$ C, P=200 bar}
+	\label{fig:Rate_dist_evolution}
+\end{figure*} 
+
+%\subsection{Cardano's Formula} \label{CH: Cardano}
+%\subfile{Sections/Cardano}
+
+\end{document}

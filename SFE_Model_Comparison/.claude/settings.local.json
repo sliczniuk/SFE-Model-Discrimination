@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(matlab -batch:*)",
-      "Bash(echo:*)"
-    ]
-  }
-}

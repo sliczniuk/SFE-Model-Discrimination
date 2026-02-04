@@ -1,0 +1,93 @@
+%!TEX root = dissertation.tex
+Unlike the champion model presented in Section \ref{chap:Parameter_Estimation}, the challenger model was developed based on the same assumption regarding the kinetic and lack of saturation. Unlike the champion mode, the challenger model introduce the power low-type of structure with the polynomial decay of the overall mass transfer coefficient, as presented by Equations \ref{EQ:Challanger_model_1} - \ref{EQ:Challanger_model_3}.
+
+{\footnotesize
+	\begin{align} \label{EQ:Challanger_model_1}
+		\frac{dc_s}{dt} &= k_w \left( \frac{\rho_f}{800} \right)^{a_w} \left( \frac{F}{5e-5} \right)^{b_w} 10^{-4} \\
+		k_w &= k_{w0} \frac{1}{ (1+\alpha_k)^{n_k} }\\
+		\alpha_k &= 1 - \frac{c_s}{c_{s0}}
+		\label{EQ:Challanger_model_3}
+	\end{align}
+}
+
+The model was fit on the entire development sample at once hence, no additional correlations are needed. The simulation results demonstrate good agreement with experimental data (Figure \ref{fig:Fit_Power_model}), as evidenced by the low mean squared error and standard deviation values reported in Table \ref{tab:Modelling_Error_challanger}. An unbiased estimate of the error variance was computed from the residuals between predicted and observed values. The variance–covariance matrix of coefficient estimates, presented in Table \ref{tab:Uncertainty_challanger}, was obtained by combining this variance with the inverse Gram matrix of the design matrix. The p-value obtained from the Jarque-Bera test (0.064), proves that residuals appear to be normally distributed.
+
+\begin{table}[H]
+	\centering
+	\adjustbox{max width=\columnwidth}{%
+		\begin{tabular}{ c|cccc }
+			\textbf{Parameter} & \textbf{Estimate} & \textbf{Std Error} & \textbf{95\% CI Low} & \textbf{95\% CI High} \\ \hline
+			$k_{w0}$ & 1.222524 & 0.053510 & 1.116804 & 1.328244 \\
+			$a_w$ &  4.308414 & 0.277930 & 3.759309 & 4.857520 \\ 
+			$b_w$ &  0.972739 & 0.090562 & 0.793816 & 1.151661 \\
+			$n_k$ & 3.428618 & 0.176948 & 3.079022 & 3.778213 
+		\end{tabular}
+	}
+	\caption{Error between experimental data and the challenger model}
+	\label{tab:Paramters_uncretainty_challanger}
+\end{table}
+
+\begin{table}[b!]
+	\centering
+	\adjustbox{max width=\columnwidth}{%
+		\begin{tabular}{c|cccccc}
+			\textbf{Exp.} & \textbf{T (°C)} & \textbf{P (bar)} & \textbf{F (kg/s)} & \textbf{MSE Cum.} & \textbf{MSE Indep.} & \textbf{Std Error Indep.} \\
+			\hline
+			1  & 40 & 100 & 6.7e-5 & 0.0060 & 0.0007 & 0.0243 \\
+			2  & 40 & 120 & 6.7e-5 & 0.0062 & 0.0011 & 0.0327 \\
+			3  & 40 & 160 & 6.7e-5 & 0.0235 & 0.0019 & 0.0444 \\
+			4  & 40 & 200 & 6.7e-5 & 0.1330 & 0.0046 & 0.0648 \\
+			5  & 30 & 100 & 6.7e-5 & 0.0296 & 0.0011 & 0.0324 \\
+			6  & 30 & 120 & 6.7e-5 & 0.0191 & 0.0014 & 0.0358 \\
+			7  & 30 & 160 & 6.7e-5 & 0.0054 & 0.0013 & 0.0373 \\
+			8  & 30 & 200 & 6.7e-5 & 0.0046 & 0.0027 & 0.0541 \\
+			9  & 30 & 100 & 3.3e-5 & 0.0144 & 0.0002 & 0.0063 \\
+			10 & 30 & 200 & 3.3e-5 & 0.0268 & 0.0013 & 0.0331 \\
+			11 & 30 & 120 & 3.3e-5 & 0.0343 & 0.0011 & 0.0306 \\
+			12 & 30 & 160 & 3.3e-5 & 0.0004 & 0.0005 & 0.0225 \\
+		\end{tabular}
+	}
+	\caption{Error between experimental data and the challenger model}
+	\label{tab:Modelling_Error_challanger_transposed}
+\end{table}
+
+\begin{table}[b!]
+	\centering
+	$\begin{array}{c|cccc}
+		& \sigma(k_{w0}) & \sigma(a_w) & \sigma(b_w) & \sigma(n_k) \\
+		\hline
+		\sigma(k_{w0}) & 0.0029 & 0.0066 & 0.0000 & 0.0054 \\
+		\sigma(a_w) & 0.0066 & 0.0772 & 0.0020 & 0.0009 \\
+		\sigma(b_w) & 0.0000 & 0.0020 & 0.0082 & -0.0004 \\
+		\sigma(n_k) & 0.0054 & 0.0009 & -0.0004 & 0.0313 \\
+	\end{array}$
+	\caption{Variance–covariance matrix, challenger model}
+	\label{tab:Uncertainty_challanger}
+\end{table}
+
+\begin{figure}[b!]
+	\centering
+	\begin{subfigure}{\columnwidth}
+		\centering
+		\includegraphics[trim = 0.0cm 0.0cm 0.0cm 0.0cm,clip, width=\columnwidth]{Figures/Power_model/Power_Model_Fit_1_4.png}
+		\caption{Results at $6.67 \cdot 10^{-5}$ kg/s and $40~^\circ$C}
+		\label{fig:Fit_1_4_Power_model}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{\columnwidth}
+		\centering
+		\includegraphics[trim = 0.0cm 0.0cm 0.0cm 0.0cm,clip, width=\columnwidth]{Figures/Power_model/Power_Model_Fit_5_8.png}
+		\caption{Results at $6.67 \cdot 10^{-5}$ kg/s and $30~^\circ$C}
+		\label{fig:Fit_5_8_Power_model}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{\columnwidth}
+		\centering
+		\includegraphics[trim = 0.0cm 0.0cm 0.0cm 0.0cm,clip, width=\columnwidth]{Figures/Power_model/Power_Model_Fit_9_12.png}
+		\caption{Results at $3.33 \cdot 10^{-5}$ kg/s}
+		\label{fig:Fit_9_12_Power_model}
+	\end{subfigure}
+	\caption{Simulation results, challenger model}
+	\label{fig:Fit_Power_model}
+\end{figure}
+

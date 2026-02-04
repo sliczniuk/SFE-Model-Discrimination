@@ -1,0 +1,83 @@
+\documentclass[../Article_Model_Parameters.tex]{subfiles}
+\graphicspath{{\subfix{../Figures/}}}
+\begin{document}
+	
+	\label{CH: Thermodynamic_details}
+	
+	\subsection{Equation of state} \label{subsubsec: Equation of state}
+	
+	A cubic equation of state (EoS) serves as a mathematical model to describe the behaviour of real gases and liquids through a third-degree polynomial equation that correlates a substance's pressure, volume and temperature. These equations constitute tools for comprehending phase behaviour, properties and thermodynamic processes of real substances across various engineering and scientific applications. The cubic equation of state takes into account deviations from ideal gas behaviour, which are particularly important at high pressures and low temperatures, where real gases do not follow the assumption of an ideal gas.
+	
+	{\footnotesize
+		\begin{equation}
+			P = \frac{RT}{v_m-b} - \frac{\Phi}{v_m^2 - ubv_m + wb^2}
+		\end{equation}
+	}
+	
+	In this equation, $P$ denotes the pressure of the substance, $v_m$ represents the molar volume of the substance, $T$ stands for the absolute temperature of the substance, $u$ and $w$ are integers that vary from one equation to another, $R$ symbolizes the universal gas constant, $\omega$ denotes an acentric factor and $\Phi=a\alpha$.
+	
+	The Van der Waals constants constitute empirical values contingent upon the particular substance being modelled. These constants factor in molecular interactions (represented by '$a$') and the finite size of gas molecules (indicated by '$b$'). 
+	
+	Several variations of the cubic equation of state exist, each with its own set of parameters and assumptions. Tables \ref{tab:Popular_Cubic_EoS} and \ref{tab:Popular_Cubic_EoS_alpha} show parameters for popular cubic EoS.
+	
+	\begin{table}[h!]
+		\centering
+		\adjustbox{width=0.9\columnwidth}{%
+			\begin{tabular}{|c| c c c c|} 
+				\hline
+				EoS & u & w & a & b\\
+				\hline
+				van der Waals  & 0 & 0 & $\frac{27}{64} \frac{R^2T_c^2}{P_c}$ & $\frac{RT_c}{8P_c}$ \\
+				Redlich and Kwong & 1 & 0 & $0.42748 \frac{R^2T_c^{2.5}}{P_c}$ & $\frac{0.08664RT_c}{P_c}$ \\
+				Soave & 1 & 0 & $0.42748 \frac{R^2T_c^2}{P_c}$ & $\frac{0.08664RT_c}{P_c}$ \\
+				Peng and Robinson \cite{Peng1976} & 2 & -1 & $0.45724 \frac{R^2T_c^2}{P_c}$ & $\frac{0.07780T_c}{P_c}$\\
+				\hline
+		\end{tabular} }
+		\caption{Parameters for Popular Cubic EoS.}
+		\label{tab:Popular_Cubic_EoS}
+	\end{table}
+	
+	\begin{table}[h!]
+		\centering
+		\adjustbox{width=0.9\columnwidth}{%
+			\begin{tabular}{|c| c c|} 
+				\hline
+				EoS & $\alpha$ & f($\omega$)\\
+				\hline
+				van der Waals  & - & - \\
+				Redlich and Kwong & $\frac{1}{\sqrt{T_r}}$ & - \\
+				Soave & $\left[ 1 + f(\omega) \left( 1-\sqrt{T_r} \right) \right]^2$ & 0.48+1.574$\omega$-0.176$\omega^2$\\
+				Peng and Robinson (\cite{Peng1976}) & $\left[ 1 + f(\omega) \left( 1-\sqrt{T_r} \right) \right]^2$ & 0.37464+1.54226$\omega$-0.26992$\omega^2$ \\
+				\hline
+		\end{tabular} }
+		\caption{Parameters for Popular Cubic EoS.}
+		\label{tab:Popular_Cubic_EoS_alpha}
+	\end{table}
+	
+	The general cubic equation of state can be represented as a polynomial, as indicated in Equation \ref{EQ:Compressibility_Polynomial}. In a one-phase region, the fluid is characterized by a single real root corresponding to the gas, liquid or supercritical phase. In the two-phase region, a gas-liquid mixture exists, and two roots are identified. The larger root corresponds to the gas phase, while the smaller root pertains to the liquid phase.
+	
+	{\footnotesize
+		\begin{equation}
+			\label{EQ:Compressibility_Polynomial}
+			Z^3 - (1+B-uB)Z^2+(A+wB^2-uB-uB^2)Z - AB - wB^2 - wB^3 = 0
+	\end{equation} }
+	
+	where $A=\frac{\Phi P}{R^2T^2}$ and $B=\frac{bP}{RT}$.
+	
+	If the Peng-Robinson equation of state (\citet{Peng1976}) is used, the polynomial equation becomes
+	
+	{\footnotesize
+		\begin{equation}
+			\label{EQ:Peng_Robinson_Polynomial}
+			Z^3 - (1-B)Z^2+(A-2B-3B^2)Z -(AB-B^2-B^3) = 0
+	\end{equation} }
+	
+	For an ideal gas, the compressibility factor is defined as $Z = 1$, but the deviation of Z needs to be considered for real-life cases. The value of $Z$ typically increases with pressure and decreases with temperature. At elevated pressures, molecules collide more frequently, which allows the repulsive forces between molecules to influence the molar volume of the real gas ($v_m$), making it surpass that of the corresponding ideal gas $\left( \left(v_m\right)_{ideal~gas} = \frac{RT}{P} \right)$, resulting in $Z$ exceeding one. At lower pressures, molecules move freely, with attractive forces predominating, leading to $Z < 1$.
+	
+	Numerical methods such as Newton-Raphson can be used to solve the polynomial equation to obtain the compressibility $Z\left(T(t,z), P(t)\right)$ at a given temperature and pressure. Alternatively, a closed-form solution can be obtained by using the Cardano formula (Appendix \ref{CH: Cardano}).
+	
+	\subsubsection{Density of the fluid phase} \label{subsubsec: Fluid density}
+	
+	The density of the fluid can be calculated from the real gas equation $\rho = \frac{P}{RTZ} \frac{1}{m_{CO2}}$. The temperature can be obtained from the time evolution of governing equations, and the pressure is considered to be constant along the system. 
+	
+\end{document}

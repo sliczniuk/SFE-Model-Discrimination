@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99d
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: Article_Model_Discrimination-Chamomile_part_1.aux
+Reallocating 'name_of_file' (item size: 1) to 9 items.
+The style file: unsrtnat.bst
+Reallocating 'name_of_file' (item size: 1) to 10 items.
+Database file #1: mybibfile.bib
+You've used 31 entries,
+            2481 wiz_defined-function locations,
+            821 strings with 11189 characters,
+and the built_in function-call counts, 12179 in all, are:
+= -- 1118
+> -- 541
+< -- 17
++ -- 218
+- -- 156
+* -- 1017
+:= -- 1988
+add.period$ -- 142
+call.type$ -- 31
+change.case$ -- 57
+chr.to.int$ -- 31
+cite$ -- 31
+duplicate$ -- 587
+empty$ -- 1097
+format.name$ -- 201
+if$ -- 2555
+int.to.chr$ -- 1
+int.to.str$ -- 32
+missing$ -- 36
+newline$ -- 212
+num.names$ -- 93
+pop$ -- 193
+preamble$ -- 1
+purify$ -- 31
+quote$ -- 0
+skip$ -- 310
+stack$ -- 0
+substring$ -- 590
+swap$ -- 83
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 202
+warning$ -- 0
+while$ -- 104
+width$ -- 0
+write$ -- 504

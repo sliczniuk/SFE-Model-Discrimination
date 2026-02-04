@@ -1,0 +1,38 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.10.12) (preloaded format=pdflatex 2024.1.12)  27 NOV 2024 22:33
+entering extended mode
+ \write18 enabled.
+ %&-line parsing enabled.
+**./DOE.tex
+(DOE.tex
+LaTeX2e <2021-06-01> patch level 1
+L3 programming layer <2021-10-18>
+(C:\Program Files\MiKTeX\tex/latex/subfiles\subfiles.cls
+Document Class: subfiles 2020/11/14 v2.2 Multi-file projects (class)
+Preamble taken from file `../Article_Design_of_Experiment.tex'
+(C:\Program Files\MiKTeX\tex/latex/import\import.sty
+Package: import 2020/04/01  v 6.2
+)
+
+! LaTeX Error: File `../Article_Design_of_Experiment.tex' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: tex)
+
+Enter file name: 
+! Emergency stop.
+<read *> 
+         
+l.45 \input{\preamble@file}
+                           ^^M
+*** (cannot \read from terminal in nonstop modes)
+
+ 
+Here is how much of TeX's memory you used:
+ 71 strings out of 478848
+ 1466 string characters out of 2848485
+ 293099 words of memory out of 3000000
+ 18059 multiletter control sequences out of 15000+600000
+ 403430 words of font info for 27 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 42i,0n,52p,180b,18s stack positions out of 5000i,500n,10000p,200000b,80000s
+!  ==> Fatal error occurred, no output PDF file produced!
