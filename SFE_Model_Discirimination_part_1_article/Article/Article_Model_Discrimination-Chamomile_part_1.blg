@@ -5,44 +5,57 @@ Reallocating 'name_of_file' (item size: 1) to 9 items.
 The style file: unsrtnat.bst
 Reallocating 'name_of_file' (item size: 1) to 10 items.
 Database file #1: mybibfile.bib
-You've used 31 entries,
+Warning--I didn't find a database entry for "Kass1995"
+Warning--I didn't find a database entry for "MacKay2003"
+Warning--I didn't find a database entry for "Jeffreys1961"
+Warning--I didn't find a database entry for "Rasmussen2006"
+Warning--I didn't find a database entry for "Newton1994"
+Warning--I didn't find a database entry for "Kong1994"
+Warning--I didn't find a database entry for "Liu2001"
+Warning--I didn't find a database entry for "Schonbrodt2018"
+Warning--I didn't find a database entry for "Stefan2019"
+Warning--I didn't find a database entry for "Myung2009"
+Warning--I didn't find a database entry for "Bernardo1979"
+Warning--I didn't find a database entry for "Atkinson1975"
+You've used 30 entries,
             2481 wiz_defined-function locations,
-            821 strings with 11189 characters,
-and the built_in function-call counts, 12179 in all, are:
-= -- 1118
-> -- 541
-< -- 17
-+ -- 218
-- -- 156
-* -- 1017
-:= -- 1988
-add.period$ -- 142
-call.type$ -- 31
-change.case$ -- 57
-chr.to.int$ -- 31
-cite$ -- 31
-duplicate$ -- 587
-empty$ -- 1097
-format.name$ -- 201
-if$ -- 2555
+            834 strings with 11235 characters,
+and the built_in function-call counts, 11812 in all, are:
+= -- 1081
+> -- 534
+< -- 16
++ -- 214
+- -- 154
+* -- 988
+:= -- 1932
+add.period$ -- 138
+call.type$ -- 30
+change.case$ -- 55
+chr.to.int$ -- 30
+cite$ -- 30
+duplicate$ -- 568
+empty$ -- 1059
+format.name$ -- 198
+if$ -- 2477
 int.to.chr$ -- 1
-int.to.str$ -- 32
-missing$ -- 36
-newline$ -- 212
-num.names$ -- 93
-pop$ -- 193
+int.to.str$ -- 31
+missing$ -- 35
+newline$ -- 206
+num.names$ -- 90
+pop$ -- 187
 preamble$ -- 1
-purify$ -- 31
+purify$ -- 30
 quote$ -- 0
-skip$ -- 310
+skip$ -- 300
 stack$ -- 0
-substring$ -- 590
-swap$ -- 83
+substring$ -- 563
+swap$ -- 80
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 202
+type$ -- 195
 warning$ -- 0
-while$ -- 104
+while$ -- 100
 width$ -- 0
-write$ -- 504
+write$ -- 489
+(There were 12 warnings)

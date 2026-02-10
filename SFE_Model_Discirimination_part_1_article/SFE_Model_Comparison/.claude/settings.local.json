@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(matlab -batch:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:link.springer.com)",
+      "WebFetch(domain:www.sciencedirect.com)",
+      "WebFetch(domain:wellcomeopenresearch.org)"
     ]
   }
 }

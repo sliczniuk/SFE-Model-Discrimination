@@ -1,4 +1,4 @@
-\begin{thebibliography}{31}
+\begin{thebibliography}{30}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -250,12 +250,5 @@ Yonathan Bard.
 \newblock \emph{Nonlinear parameter estimation}.
 \newblock Acad. Press, New York [u.a.], 1974.
 \newblock ISBN 0120782502.
-
-\bibitem[Mandel(1957)]{Mandel1957}
-John Mandel.
-\newblock Fitting a straight line to certain types of cumulative data.
-\newblock \emph{Journal of the American Statistical Association}, 52\penalty0
-  (280):\penalty0 552--566, dec 1957.
-\newblock \doi{10.1080/01621459.1957.10501413}.
 
 \end{thebibliography}

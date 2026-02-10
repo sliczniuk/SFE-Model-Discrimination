@@ -22,6 +22,10 @@ function [max_KS, integrated_JS, Time_ks_max, results] = compute_discrimination_
 %   'Seed'    - Random seed for reproducibility (default: 42)
 %   'Verbose' - Print progress messages (default: true)
 %   'UseMap'  - Use CasADi map over samples (default: true)
+%   'BalancePrecision' - Balance measurement precision [g] (default: 0)
+%                        e.g., 0.0001 for ±0.0001 g balance precision.
+%                        Applies additive Gaussian noise to rate measurements,
+%                        then reconstructs cumulative yields.
 %
 % Outputs:
 %   max_KS       - Maximum KS statistic over trajectory (yield-based)
@@ -60,11 +64,13 @@ addParameter(p, 'N_MC', 500, @isnumeric);
 addParameter(p, 'Seed', 42, @isnumeric);
 addParameter(p, 'Verbose', true, @islogical);
 addParameter(p, 'UseMap', true, @islogical);
+addParameter(p, 'BalancePrecision', 0, @isnumeric);
 parse(p, T, P, F, timeStep, finalTime, varargin{:});
 
 N_MC = p.Results.N_MC;
 verbose = p.Results.Verbose;
 use_map = p.Results.UseMap;
+sigma_balance = p.Results.BalancePrecision;
 
 rng(p.Results.Seed);
 
@@ -73,6 +79,9 @@ import casadi.*
 if verbose
     fprintf('Computing discrimination metrics at T=%.0fK, P=%.0f bar, F=%.2e m3/s\n', T, P, F);
     fprintf('  MC samples: %d\n', N_MC);
+    if sigma_balance > 0
+        fprintf('  Balance precision: ±%.4f g\n', sigma_balance);
+    end
 end
 
 %% Load parameters and covariance matrices
@@ -303,6 +312,30 @@ n_time_rate = length(Time_rate);
 Rate_power_nom = diff(Y_power_nom) / dt_min;
 Rate_linear_nom = diff(Y_linear_nom) / dt_min;
 
+%% Apply measurement noise (if specified)
+% Noise is applied to rates (independent measurements), then cumulative
+% yields are reconstructed. This models weighing each fraction with a
+% balance of precision ±sigma_balance.
+sigma_rate = 0;  % Will store the rate noise std for output
+if sigma_balance > 0
+    % Convert balance error to rate error
+    % Factor sqrt(2) accounts for two weighings per increment (cumulative difference)
+    sigma_rate = sqrt(2) * sigma_balance / dt_min;  % [g/min]
+
+    if verbose
+        fprintf('  Applying measurement noise: sigma_rate = %.2e g/min\n', sigma_rate);
+    end
+
+    % Add independent Gaussian noise to rates
+    Rate_power_valid = Rate_power_valid + sigma_rate * randn(size(Rate_power_valid));
+    Rate_linear_valid = Rate_linear_valid + sigma_rate * randn(size(Rate_linear_valid));
+
+    % Reconstruct cumulative yields from noisy rates
+    % Y(t_k) = sum_{i=1}^{k} Rate(t_i) * dt
+    Y_power_valid = [zeros(n_valid, 1), cumsum(Rate_power_valid * dt_min, 2)];
+    Y_linear_valid = [zeros(n_valid, 1), cumsum(Rate_linear_valid * dt_min, 2)];
+end
+
 if verbose
     fprintf('  Computing rate-based metrics...\n');
 end
@@ -316,6 +349,8 @@ metrics.Time = Time_full;
 metrics.T0 = T;
 metrics.P0 = P;
 metrics.F0 = F;
+metrics.BalancePrecision = sigma_balance;
+metrics.sigma_rate = sigma_rate;
 
 % Preallocate
 metrics.kl_power_linear = zeros(1, n_time_full);
@@ -476,6 +511,9 @@ if nargout >= 3
     results.theta_linear_samples = theta_linear_samples;
     results.Cov_power = Cov_power;
     results.Cov_linear = Cov_linear_full;
+    % Measurement noise parameters
+    results.BalancePrecision = sigma_balance;
+    results.sigma_rate = sigma_rate;
 end
 
 if verbose
