@@ -6,7 +6,9 @@
       "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
       "WebFetch(domain:link.springer.com)",
       "WebFetch(domain:www.sciencedirect.com)",
-      "WebFetch(domain:wellcomeopenresearch.org)"
+      "WebFetch(domain:wellcomeopenresearch.org)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ]
   }
 }

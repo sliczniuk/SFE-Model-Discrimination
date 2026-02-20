@@ -22,8 +22,8 @@ fprintf('=======================================================================
 timeStep  = 5;  % Time step [min]
 finalTime = 600; % Extraction time [min]
 
-T = linspace(30,40,15)+273;
-F = linspace(3.3,6.7,15)*1e-5;
+T = linspace(30,40,5)+273;
+F = linspace(3.3,6.7,5)*1e-5;
 
 pressures = [100, 120, 160, 200];
 
@@ -68,7 +68,7 @@ for i = 1:n_pressures
         fprintf('Processing P = %d bar, T = %d [C], F = %d g/s...\n', pressures(i), T_i-273, F_i*1e5);
 
         [int_KS_j, int_JS_j, Time_ks_max_j, results_j] = compute_discrimination_metrics(T_i, pressures(i), F_i, timeStep, finalTime, ...
-            'N_MC', 1000, 'BalancePrecision', 0.0001, 'Verbose', false, 'UseMap', false);
+            'N_MC', 1000, 'Verbose', false, 'UseMap', false);
 
         JS_final_grid(j) = results_j.metrics.js_divergence(end);
         AUC_grid(j) = results_j.metrics.auc(end);
@@ -97,7 +97,7 @@ for i = 1:n_pressures
     JS_cordinate = reshape(sweep_results.final_JS{i}(:), numel(F), numel(T));
     
     subplot(2,2,i)
-    pcolor(T_cordinate-273, F_cordinate, JS_cordinate); shading interp; colormap turbo; cb = colorbar; cb.Label.String = 'JS div'; c.Label.Interpreter = 'latex';
+    pcolor(T_cordinate-273, F_cordinate, JS_cordinate); shading interp; colormap turbo; cb = colorbar; cb.Label.String = 'JS div'; cb.Label.Interpreter = 'latex';
     hold on
     contour(T_cordinate-273, F_cordinate, JS_cordinate, 'color', 'k', 'ShowText', 'on' )
     hold off
@@ -123,7 +123,7 @@ for i = 1:n_pressures
     AUC_cordinate = reshape(sweep_results.final_AUC{i}(:), numel(F), numel(T));
     
     subplot(2,2,i)
-    pcolor(T_cordinate-273, F_cordinate, AUC_cordinate); shading interp; colormap turbo; cb = colorbar; cb.Label.String = 'AUC'; c.Label.Interpreter = 'latex';
+    pcolor(T_cordinate-273, F_cordinate, AUC_cordinate); shading interp; colormap turbo; cb = colorbar; cb.Label.String = 'AUC'; cb.Label.Interpreter = 'latex';
     hold on
     contour(T_cordinate-273, F_cordinate, AUC_cordinate, 'color', 'k', 'ShowText', 'on' )
     hold off
@@ -144,119 +144,21 @@ end
 print(['AUC_scatter.png'],'-dpng','-r500'); close all;
 
 %%
-[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, 5, finalTime, 'N_MC', 1000, 'BalancePrecision', 0.0001, 'Verbose', false, 'UseMap', true);
-plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F667'); close all;
-
-[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, 2, finalTime, 'N_MC', 1000, 'BalancePrecision', 0.0001 ,'Verbose', false, 'UseMap', true);
-plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F333'); close all;
-
-%% Check if the rate measurments (diff yield) are autocorellated. Compute ACF for each trajectory and average
-%Check_for_autocorrelation(results)
-
-
-%%
+[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F667_meas_error'); close all;
 %{
-% Run once with full duration
-clc;
-% Run once with full duration
-finalTime = 600;
-[~, ~, ~, res] = compute_discrimination_metrics(303, 200, 3.33e-5, ...
-    5, finalTime, 'N_MC', 50000, 'Verbose', false, 'UseMap', true);
+[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F333_meas_error'); close all;
 
-% Time vector: res.Time = [0, 5, 10, ..., 600] (121 points)
-% To get final_time = 300 min, use indices 1:61 (since Time(61) = 300)
+[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'SigmaCumPower', 0, 'SigmaCumLinear', 0, ...
+    'SigmaDiffPower', 0, 'SigmaDiffLinear', 0, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F667_no_meas_error'); close all;
 
-final_times = [15, 30, 60, 90, 120, 150, 180, 240, 300, 450, 600];
-sigma_meas = 0.05; 
-dt = 5;  % your time step
-
-fprintf('Final Time | log B (P true) | log B (L true) | N_eff P | N_eff L\n');
-fprintf('-----------|----------------|----------------|---------|--------\n');
-
-Bayes_Factor_results = [];
-
-for ft = final_times
-    % Index for this final time: ft/dt + 1 (since Time starts at 0)
-    idx = 1:(ft/dt + 1);
-    
-    % Slice trajectories
-    Y_power_sub = res.Y_power_valid(:, idx);
-    Y_linear_sub = res.Y_linear_valid(:, idx);
-    Y_power_nom_sub = res.Y_power_nom(idx);
-    Y_linear_nom_sub = res.Y_linear_nom(idx);
-    
-    % Bayes factors on subsets
-    log_BF_P = trajectory_bayes_factor(Y_power_nom_sub, ...
-        Y_power_sub, Y_linear_sub, sigma_meas);
-    log_BF_L = trajectory_bayes_factor(Y_linear_nom_sub, ...
-        Y_power_sub, Y_linear_sub, sigma_meas);
-    
-    % N_eff diagnostics
-    resid_P = (Y_power_nom_sub - Y_power_sub) / sigma_meas;
-    resid_L = (Y_power_nom_sub - Y_linear_sub) / sigma_meas;
-    loglik_P = -0.5 * sum(resid_P.^2, 2);
-    loglik_L = -0.5 * sum(resid_L.^2, 2);
-    w_P = exp(loglik_P - max(loglik_P));
-    w_L = exp(loglik_L - max(loglik_L));
-    N_eff_P = sum(w_P)^2 / sum(w_P.^2);
-    N_eff_L = sum(w_L)^2 / sum(w_L.^2);
-    
-    fprintf('%6d min | %+14.1f | %+14.1f | %7.1f | %7.1f\n', ...
-        ft, log_BF_P, log_BF_L, N_eff_P, N_eff_L);
-    
-    Bayes_Factor_results = [Bayes_Factor_results; [log_BF_P, log_BF_L, N_eff_P, N_eff_L]];
-
-end
-
-%%
-
-
-
-function log_BF = trajectory_bayes_factor(y_obs_vec, Y_power_valid, ...
-    Y_linear_valid, sigma_meas)
-% Compute log Bayes factor from a full observed trajectory
-%
-% y_obs_vec:       [1 x N_time] observed yields
-% Y_power_valid:   [n_valid x N_time] MC power trajectories
-% Y_linear_valid:  [n_valid x N_time] MC linear trajectories
-% sigma_meas:      measurement noise std dev (scalar)
-%
-% Returns log B_PL = log p(y_obs | M_P) - log p(y_obs | M_L)
-
-    n_valid = size(Y_power_valid, 1);
-    n_time = length(y_obs_vec);
-
-    % For each MC sample i, compute log p(y_obs | theta_i, M)
-    % = sum_t log N(y_obs(t) | Y_model(i,t), sigma_meas^2)
-    % = -0.5 * sum_t ((y_obs(t) - Y_model(i,t))^2 / sigma_meas^2) + const
-
-    % Residuals: [n_valid x n_time]
-    resid_P = (y_obs_vec - Y_power_valid) / sigma_meas;   
-    resid_L = (y_obs_vec - Y_linear_valid) / sigma_meas;
-
-    % Log-likelihood per sample (drop constants, they cancel in ratio)
-    loglik_P = -0.5 * sum(resid_P.^2, 2);  % [n_valid x 1]
-    loglik_L = -0.5 * sum(resid_L.^2, 2);  % [n_valid x 1]
-
-    % Marginal likelihood = (1/N) * sum_i exp(loglik_i)
-    % Use log-sum-exp for numerical stability:
-    %   log p(y|M) = log(1/N) + logsumexp(loglik)
-
-    log_marglik_P = logsumexp(loglik_P) - log(n_valid);
-    log_marglik_L = logsumexp(loglik_L) - log(n_valid);
-
-    log_BF = log_marglik_P - log_marglik_L;
-end
-
-function lse = logsumexp(x)
-    x_max = max(x);
-    lse = x_max + log(sum(exp(x - x_max)));
-end
-
+[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'SigmaCumPower', 0, 'SigmaCumLinear', 0, ...
+    'SigmaDiffPower', 0, 'SigmaDiffLinear', 0, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F333_no_meas_error'); close all;
 %}
-
-
-
-
+%% Check if the rate measurements (diff yield) are autocorrelated. Compute ACF for each trajectory and average
+%Check_for_autocorrelation(results)
 
 
