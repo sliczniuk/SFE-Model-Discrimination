@@ -144,20 +144,20 @@ end
 print(['AUC_scatter.png'],'-dpng','-r500'); close all;
 
 %%
-[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'Verbose', true, 'UseMap', true, 'N_noiseCI', 100);
 plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F667_meas_error'); close all;
-%{
-[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+
+[int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'Verbose', true, 'UseMap', true, 'N_noiseCI', 100);
 plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F333_meas_error'); close all;
 
 [int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 6.67e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'SigmaCumPower', 0, 'SigmaCumLinear', 0, ...
-    'SigmaDiffPower', 0, 'SigmaDiffLinear', 0, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+    'SigmaDiffPower', 0, 'SigmaDiffLinear', 0, 'Verbose', true, 'UseMap', true, 'N_noiseCI', 100);
 plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F667_no_meas_error'); close all;
 
 [int_KS_i, int_JS_i, Time_ks_max_i, results] = compute_discrimination_metrics(303, 200, 3.33e-5, 5, finalTime, 'N_MC', 1500, 'RateSamplingTime', 30, 'SigmaCumPower', 0, 'SigmaCumLinear', 0, ...
-    'SigmaDiffPower', 0, 'SigmaDiffLinear', 0, 'Verbose', false, 'UseMap', true, 'N_noiseCI', 100);
+    'SigmaDiffPower', 0, 'SigmaDiffLinear', 0, 'Verbose', true, 'UseMap', true, 'N_noiseCI', 100);
 plot_discrimination_results(results, 'Figures', 'all', 'SaveFigs', true, 'SaveNameSuffix', '_P200_T30_F333_no_meas_error'); close all;
-%}
+
 %% Check if the rate measurements (diff yield) are autocorrelated. Compute ACF for each trajectory and average
 %Check_for_autocorrelation(results)
 

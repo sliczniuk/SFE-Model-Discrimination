@@ -677,6 +677,8 @@ if nargout >= 3
     results.F0             = F;
     results.ExtractionTime = finalTime;
     results.N_MC           = N_MC;
+    results.Seed           = p.Results.Seed;   % for reproducible CI draws in plot
+    results.N_noiseCI      = N_noiseCI;        % number of noise draws used for CI
     results.dt_rate        = dt_rate;
     results.stride         = stride;
     results.n_valid_cum    = n_valid_cum;
@@ -783,5 +785,8 @@ function auc = compute_auc_local(y_p, y_l)
     end
 
     auc = (count_greater + 0.5 * count_equal) / (n_p * n_l);
-    auc = max(auc, 1 - auc);
+    % Directional AUC: P(y_p > y_l) in [0,1].
+    % 0.5 = no discrimination; >0.5 = Power dominates; <0.5 = Linear dominates.
+    % Do NOT fold with max(auc, 1-auc) — that discards directionality and
+    % silently inflates CI lower bounds when noise draws cross the 0.5 boundary.
 end
