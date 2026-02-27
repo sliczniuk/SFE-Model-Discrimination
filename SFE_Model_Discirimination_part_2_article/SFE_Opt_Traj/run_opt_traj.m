@@ -9,13 +9,15 @@ fprintf('=======================================================================
 
 %% Optimizer Settings - IMPROVED CONVERGENCE
 nlp_opts = struct;
-nlp_opts.ipopt.max_iter              = 0;           % Increased from 50
+nlp_opts.ipopt.max_iter              = 50;           % Increased from 50
 %nlp_opts.ipopt.max_cpu_time          = Time_max * 3600;
 nlp_opts.ipopt.tol                   = 1e-7;          % Convergence tolerance
 nlp_opts.ipopt.acceptable_tol        = 1e-5;          % Backup tolerance
 nlp_opts.ipopt.acceptable_iter       = 10;            % Accept after 10 iterations
 nlp_opts.ipopt.hessian_approximation = 'limited-memory';
-nlp_opts.ipopt.print_level           = 5;             % Moderate verbosity
+nlp_opts.ipopt.limited_memory_max_history = 20;
+nlp_opts.ipopt.print_level           = 5;             % Suppress IPOPT iteration output
+nlp_opts.print_time                  = false;          % Suppress CasADi timing summary table
 
 fprintf('=== Optimizer Configuration ===\n');
 fprintf('Max iterations: %d\n', nlp_opts.ipopt.max_iter);
@@ -24,6 +26,21 @@ fprintf('Convergence tolerance: %.0e\n', nlp_opts.ipopt.tol);
 
 opti = casadi.Opti();
 opti.solver('ipopt', nlp_opts);
+
+%% Set up the simulation
+timeStep  = 5;  % Time step [min]
+finalTime = 600; % Extraction time [min]
+Time      = 0 : timeStep: finalTime;
+
+N_starts = 1; %pool.NumWorkers;
+
+pressures_bar = [200];   % extraction pressures to optimise
+
+sigma2_cases = [2.45e-2, 1.386e-3, 1.007e-2]; % Mean empirical sigma as given in the report
+
+% Decision-variable bounds (defined here so they can be used in the MX expressions below)
+T_lb = 303;    T_ub = 313;
+F_lb = 3.3e-5; F_ub = 6.7e-5;
 
 %% Load parameters and data
 Parameters_table = readtable('Parameters.csv');
@@ -35,20 +52,15 @@ Nk      = numel(which_k);  % 10 parameters (4 Power + 6 Linear)
 k1      = opti.parameter(4);
 k2      = opti.parameter(6);
 k       = [k1; k2];
+P_param = opti.parameter(1);   % extraction pressure [bar] — swept externally
 
 k1_val  = cell2mat(Parameters((0:3) + 44) );
 k2_val  = cell2mat(Parameters((4:9) + 44) );
 
-%% Set up the simulation
-timeStep  = 15;  % Time step [min]
-finalTime = 600; % Extraction time [min]
-Time      = 0 : timeStep: finalTime;
-
-%sigma2_scale = 0.01;
-
 %% Sample Time Matching
-SAMPLE = LabResults(6:19, 1);
-SAMPLE = SAMPLE(2:end);
+%SAMPLE = LabResults(6:19, 1);
+%SAMPLE = SAMPLE(2:end);
+SAMPLE = [15, 30, 60, 120, 240, 360, 600]
 
 sample_tol = 1e-3;
 N_Sample   = zeros(size(SAMPLE));
@@ -169,14 +181,14 @@ Nu = 3 + numel(Parameters);
 yield_cases = {'Cumulative', 'Differentiated', 'Normalised'};
 Cov_power_cases  = {Cov_power_cum,  Cov_power_diff,  Cov_power_norm};
 Cov_linear_cases = {Cov_linear_cum, Cov_linear_diff, Cov_linear_norm};
-sigma2_cases = [2.45e-2, 1.386e-3, 1.007e-2]; % Mean empirical sigma as given in the report
 
 % Input vectors
-feedTemp_0 = linspace(307, 307, N_Time);
-feedTemp   = opti.variable(numel(feedTemp_0))';
-feedPress  = 150 * ones(1, N_Time);
-feedFlow_0 = linspace(5.5, 5.5, N_Time) * 1e-5;
-feedFlow   = opti.variable(numel(feedFlow_0))' ;
+% F is rescaled by ×1e-5 so its span [3.3, 6.7] is comparable to T's span [303, 313].
+% L-BFGS span ratio: 10 : 3.4 ≈ 3  (vs 3×10^5 before scaling).
+feedTemp  = opti.variable(N_Time)';                      % [303, 313] K  — direct physical
+F_scaled  = opti.variable(N_Time)';                      % [3.3, 6.7]   — rescaled (×1e-5)
+feedPress = P_param * ones(1, N_Time);                   % symbolic pressure — unchanged
+feedFlow  = F_scaled * 1e-5;                             % [3.3e-5, 6.7e-5] kg/s — derived MX
 
 T         = feedTemp(1);
 P         = feedPress(1);
@@ -244,52 +256,455 @@ Sigma_r_L = Sigma_r_L + eps_reg*I;
 
 j_1 = trace( Sigma_r_P * (Sigma_r_L\I) + Sigma_r_L * (Sigma_r_P\I) - 2*I );
 j_2 = residuals * ((Sigma_r_P\I) + (Sigma_r_L\I)) * residuals';
-j   = j_1 + j_2;
+%j   = j_1 + j_2;
+j = residuals(end).^2 * 1e3;
 
 
-% Non-negativity constraints
+% Box constraints — T in physical [K], F_scaled in ×1e-5 units [3.3, 6.7]
 opti.subject_to(303 <= feedTemp <= 313);
-opti.subject_to(3.3e-5 <= feedFlow <= 6.7e-5);
+opti.subject_to(3.3 <= F_scaled <= 6.7);
 
 opti.set_value(k1, k1_val);
 opti.set_value(k2, k2_val);
 
 opti.minimize(-j);
-opti.set_initial(feedTemp, feedTemp_0);
-opti.set_initial(feedFlow, feedFlow_0);
 
-%{\
-try
-    sol = opti.solve();
-    valfun = @(x) sol.value(x);
-    success = true;
-catch
-    valfun = @(x) opti.debug.value(x);
-    success = false;
+%% Convert Opti problem to a CasADi Function for multi-start
+% Decision variables passed as inputs become initial-guess arguments.
+% Parameters (k1, k2) are baked in via opti.set_value above.
+fprintf('Building solver function via opti.to_function ...\n');
+solver_fn = opti.to_function('solver_fn', ...
+    {feedTemp, F_scaled, P_param}, ...     % inputs:  physical T + scaled F initial guesses + pressure
+    {feedTemp, F_scaled, j}, ...           % outputs: physical T + scaled F optimum + objective
+    {'T_init', 'F_scaled_init', 'P_val'}, ...
+    {'T_opt',  'F_scaled_opt',  'j_opt'});
+fprintf('Solver function built successfully.\n');
+
+%% Build a separate model-evaluation function (for post-processing plots)
+% Full cumulative yield at ALL time steps (not just sample times)
+Y_full_P_sym = [0, X_power_nom(Nx, :)];    % 1 x (N_Time+1)
+Y_full_L_sym = [0, X_linear_nom(Nx, :)];   % 1 x (N_Time+1)
+
+% Jacobians of full trajectory w.r.t. model parameters (for CI computation)
+J_full_P_sym = jacobian(Y_full_P_sym, k1);  % (N_Time+1) x 4
+J_full_L_sym = jacobian(Y_full_L_sym, k2);  % (N_Time+1) x 6
+
+eval_fn = Function('eval_fn', ...
+    {feedTemp, F_scaled, k1, k2, P_param}, ...
+    {Y_full_P_sym, Y_full_L_sym, Y_P_sym, Y_L_sym, ...
+     J_full_P_sym, J_full_L_sym, J_P_sym, J_L_sym}, ...
+    {'T_in', 'F_scaled_in', 'k1_in', 'k2_in', 'P_in'}, ...
+    {'Y_cum_P_full', 'Y_cum_L_full', 'Y_cum_P_sample', 'Y_cum_L_sample', ...
+     'J_full_P', 'J_full_L', 'J_sample_P', 'J_sample_L'});
+
+%% Pressure sweep configuration
+N_press       = numel(pressures_bar);
+best_j_all    = zeros(N_press, 1);           % best J value found at each pressure
+
+%% Multi-start configuration
+% Detect available parallel workers
+pool = gcp('nocreate');
+if isempty(pool)
+    pool = parpool('local');          % auto-detects available cores
 end
 
-K_out = full(valfun([feedTemp; feedFlow]));
-obj   = full(valfun(j));
-status = opti.stats();
+% Suppress Java AWT initialisation on workers.
+% CasADi can trigger an AWT call (for profiling/display) on worker threads,
+% which fails because workers have no display.  Setting the headless property
+% before the parfor prevents the ClassCastException.
+parfevalOnAll(@() java.lang.System.setProperty('java.awt.headless','true'), 0);
 
-%%
+fprintf('\n=== Multi-Start Configuration ===\n');
+fprintf('Number of starts: %d\n', N_starts);
+fprintf('Temperature bounds: [%.0f, %.0f] K\n', T_lb, T_ub);
+fprintf('Flow rate bounds:   [%.2e, %.2e] kg/s\n', F_lb, F_ub);
+
+%% Generate Latin Hypercube initial guesses
+% Each row is a random trajectory: independent T(t), F(t) at every time step
+rng(42);  % reproducibility
+n_dim = 2 * N_Time;  % 40 temperatures + 40 flow rates
+
+if exist('lhsdesign', 'file')
+    X_lhs = lhsdesign(N_starts, n_dim);
+else
+    % Manual LHS fallback (no Statistics Toolbox required)
+    X_lhs = zeros(N_starts, n_dim);
+    for col = 1:n_dim
+        perm = randperm(N_starts);
+        X_lhs(:, col) = (perm' - rand(N_starts, 1)) / N_starts;
+    end
+end
+
+% Rescale LHS samples from [0,1] to the decision-variable ranges.
+feedTemp_all = T_lb + X_lhs(:, 1:N_Time) * (T_ub - T_lb);    % [303, 313] K
+F_scaled_all = 3.3  + X_lhs(:, N_Time+1:end) * (6.7 - 3.3);  % [3.3, 6.7]  (×1e-5 = kg/s)
+
+%% Pressure sweep loop
+for p_idx = 1:N_press
+
+P_val = pressures_bar(p_idx);
+fprintf('\n%s\n', repmat('=', 1, 62));
+fprintf('  Pressure: %d bar  (%d / %d)\n', P_val, p_idx, N_press);
+fprintf('%s\n', repmat('=', 1, 62));
+
+%% Parallel multi-start solve
+fprintf('\nStarting %d parallel IPOPT solves ...\n', N_starts);
+fprintf('%-9s %-8s %-16s %-10s  %s\n', 'Start', 'Status', 'J (Jeffreys)', 'Time [s]', 'ETA');
+fprintf('%s\n', repmat('-', 1, 62));
+
+% ---- DataQueue: each worker sends a struct ----
+%  .idx       start index
+%  .ok        true/false
+%  .j_val     objective (or -Inf on failure)
+%  .elapsed_s time taken by that start [s]
+%  .msg       error message (on failure)
+dq = parallel.pool.DataQueue;
+
+% Mutable counters for the callback.
+% containers.Map is a handle object, so the anonymous function captures
+% a reference to the same map and can update it across calls.
+n_workers = pool.NumWorkers;
+ctr = containers.Map({'n_done','sum_time'}, {0, 0});
+
+afterEach(dq, @(pkt) localProgress(pkt, ctr, n_workers, N_starts));
+
+tic;
+
+results_T = zeros(N_starts, N_Time);
+results_F = zeros(N_starts, N_Time);
+results_j = -Inf(N_starts, 1);
+success   = false(N_starts, 1);
+
+for i = 1:N_starts
+    t_start = tic;
+    pkt     = struct('idx', i, 'ok', false, 'j_val', -Inf, ...
+                     'elapsed_s', 0, 'msg', '');
+    try
+        [T_opt, F_s_opt, j_opt] = solver_fn(feedTemp_all(i,:), F_scaled_all(i,:), P_val);
+        results_T(i,:) = full(T_opt)';            % [K]    — already physical
+        results_F(i,:) = full(F_s_opt)' * 1e-5;  % [kg/s] — unscale from [3.3,6.7]
+        results_j(i)   = full(j_opt);
+        success(i)     = true;
+        pkt.ok         = true;
+        pkt.j_val      = full(j_opt);
+    catch ME
+        success(i)     = false;
+        results_j(i)   = -Inf;
+        pkt.msg        = ME.message;
+    end
+    pkt.elapsed_s = toc(t_start);
+    send(dq, pkt);
+end
+
+elapsed = toc;
+fprintf('%s\n', repmat('-', 1, 62));
+fprintf('All %d solves completed in %.1f s  (%.1f s/start wall-clock average).\n', ...
+    N_starts, elapsed, elapsed / N_starts);
+
+%% Result summary
+fprintf('\n=== Multi-Start Results (%d starts) ===\n', N_starts);
+fprintf('%5s | %10s | %14s\n', 'Start', 'Status', 'J (Jeffreys)');
+fprintf('%s\n', repmat('-', 1, 37));
+for i = 1:N_starts
+    if success(i)
+        status_str = 'OK';
+    else
+        status_str = 'FAIL';
+    end
+    fprintf('%5d | %10s | %14.6e\n', i, status_str, results_j(i));
+end
+
+%% Select best result
+if any(success)
+    obj_masked = results_j;
+    obj_masked(~success) = -Inf;
+    [best_j, best_idx] = max(obj_masked);
+else
+    [best_j, best_idx] = max(results_j);
+    warning('No solver succeeded. Using best debug value.');
+end
+
+fprintf('\nBest start: #%d with J = %.6e  (%d/%d succeeded)\n', ...
+    best_idx, best_j, sum(success), N_starts);
+
+best_j_all(p_idx) = best_j;
+K_out = [results_T(best_idx,:); results_F(best_idx,:)];
+
+%% Plot best trajectory
+%{
+figure('Name', 'Optimal Trajectory (Best Start)', 'NumberTitle', 'off');
+
 subplot(2,1,1)
-stairs(Time, [K_out(1,:), K_out(1,end)]-273, LineWidth=2 )
-xlabel('Time min')
-ylabel('T C')
+stairs(Time, [K_out(1,:), K_out(1,end)] - 273, 'LineWidth', 2)
+xlabel('Time [min]')
+ylabel('T [C]')
+title(sprintf('Best start #%d — %d bar:  J = %.4e', best_idx, P_val, best_j))
+grid on
 
 subplot(2,1,2)
-stairs(Time, [K_out(2,:), K_out(2,end)]*1e5, LineWidth=2 )
-xlabel('Time min')
-ylabel('F kg/s 1e-5')
+stairs(Time, [K_out(2,:), K_out(2,end)] * 1e5, 'LineWidth', 2)
+xlabel('Time [min]')
+ylabel('F [kg/s  x 1e-5]')
+grid on
+%}
 
+%% Plot all successful trajectories
+figure('Name', sprintf('All Successful Trajectories — %d bar', P_val), 'NumberTitle', 'off');
+colors = lines(N_starts);
+colors(best_idx, :) = [0, 0, 0];
 
+subplot(2,1,1); hold on;
+for i = 1:N_starts
+    if success(i)
+        lw = 1; if i == best_idx, lw = 5; end
+        stairs(Time, [results_T(i,:), results_T(i,end)] - 273, ...
+            'Color', colors(i,:), 'LineWidth', lw)
+    end
+end
+ylabel('T [C]'); xlabel('Time [min]'); grid on;
+title('All successful starts (best = thick)')
 
+subplot(2,1,2); hold on;
+for i = 1:N_starts
+    if success(i)
+        lw = 1; if i == best_idx, lw = 5; end
+        stairs(Time, [results_F(i,:), results_F(i,end)] * 1e5, ...
+            'Color', colors(i,:), 'LineWidth', lw)
+    end
+end
+ylabel('F [kg/s  x 1e-5]'); xlabel('Time [min]'); grid on;
 
+%% Evaluate model outputs at the best trajectory
+fprintf('\nEvaluating model outputs at best trajectory ...\n');
+best_T = K_out(1,:);
+best_F = K_out(2,:);
 
+% Scale best_F from [kg/s] back to the F_scaled domain [3.3, 6.7] for eval_fn
+best_F_scaled = best_F * 1e5;
 
+[Y_cum_P_full, Y_cum_L_full, Y_cum_P_sample, Y_cum_L_sample, ...
+ JJ_full_P, JJ_full_L, JJ_sample_P, JJ_sample_L] = ...
+    eval_fn(best_T, best_F_scaled, k1_val, k2_val, P_val);
 
+Y_cum_P_full   = full(Y_cum_P_full);
+Y_cum_L_full   = full(Y_cum_L_full);
+Y_cum_P_sample = full(Y_cum_P_sample);
+Y_cum_L_sample = full(Y_cum_L_sample);
+JJ_full_P      = full(JJ_full_P);      % (N_Time+1) x 4
+JJ_full_L      = full(JJ_full_L);      % (N_Time+1) x 6
+JJ_sample_P    = full(JJ_sample_P);    % N_sample x 4
+JJ_sample_L    = full(JJ_sample_L);    % N_sample x 6
 
+% Differentiated yield at sample times
+Y_diff_P = Y_cum_P_sample(2:end) - Y_cum_P_sample(1:end-1);
+Y_diff_L = Y_cum_L_sample(2:end) - Y_cum_L_sample(1:end-1);
+
+% Sample times for plotting
+SAMPLE_times = SAMPLE;
+SAMPLE_diff_times = (SAMPLE(1:end-1) + SAMPLE(2:end)) / 2;  % midpoints
+
+%% Compute 95% confidence intervals
+% Predictive variance = parameter uncertainty + measurement noise:
+%   Var(y_i(t)) = J_i(t,:) * Cov_theta_i * J_i(t,:)' + sigma^2
+% CI half-width = 1.96 * sqrt(Var)
+sigma2 = sigma2_cases(1);  % empirical measurement variance (cumulative)
+z_95   = 1.96;
+
+% --- Full trajectory CI (for smooth shaded bands) ---
+% Power model: diag( J_full * Cov_power * J_full' ) + sigma2
+var_full_P = sum((JJ_full_P * Cov_power_cum) .* JJ_full_P, 2)' + sigma2;
+var_full_L = sum((JJ_full_L * Cov_linear_cum) .* JJ_full_L, 2)' + sigma2;
+
+CI_full_P = z_95 * sqrt(var_full_P);  % 1 x (N_Time+1)
+CI_full_L = z_95 * sqrt(var_full_L);
+
+% --- Sample-time CI ---
+var_sample_P = sum((JJ_sample_P * Cov_power_cum) .* JJ_sample_P, 2)' + sigma2;
+var_sample_L = sum((JJ_sample_L * Cov_linear_cum) .* JJ_sample_L, 2)' + sigma2;
+
+CI_sample_P = z_95 * sqrt(var_sample_P);
+CI_sample_L = z_95 * sqrt(var_sample_L);
+
+% --- Differentiated yield CI ---
+% diff(Y) = Y(k+1) - Y(k), so J_diff(k,:) = J(k+1,:) - J(k,:)
+% Cov(diff_Y) = J_diff * Cov_theta_diff * J_diff' + sigma2_diff
+% Uses differentiated-yield parameter covariances (estimated from diff residuals)
+JJ_diff_P = JJ_sample_P(2:end,:) - JJ_sample_P(1:end-1,:);
+JJ_diff_L = JJ_sample_L(2:end,:) - JJ_sample_L(1:end-1,:);
+
+sigma2_diff = sigma2_cases(2);  % empirical variance for differentiated yield
+var_diff_P = sum((JJ_diff_P * Cov_power_diff) .* JJ_diff_P, 2)' + sigma2_diff;
+var_diff_L = sum((JJ_diff_L * Cov_linear_diff) .* JJ_diff_L, 2)' + sigma2_diff;
+
+CI_diff_P = z_95 * sqrt(var_diff_P);
+CI_diff_L = z_95 * sqrt(var_diff_L);
+
+fprintf('CI computed: full trajectory (%d pts), sample (%d pts), diff (%d pts)\n', ...
+    numel(CI_full_P), numel(CI_sample_P), numel(CI_diff_P));
+
+%% Plot model outputs: Cumulative yield with CI
+figure('Name', sprintf('Model Outputs - Cumulative Yield — %d bar', P_val), 'NumberTitle', 'off');
+
+% Shaded CI bands (plot first so they appear behind lines)
+fill([Time, fliplr(Time)], ...
+     [Y_cum_P_full + CI_full_P, fliplr(Y_cum_P_full - CI_full_P)], ...
+     'b', 'FaceAlpha', 0.15, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+hold on;
+fill([Time, fliplr(Time)], ...
+     [Y_cum_L_full + CI_full_L, fliplr(Y_cum_L_full - CI_full_L)], ...
+     'r', 'FaceAlpha', 0.15, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+
+% Model predictions
+plot(Time, Y_cum_P_full, 'b-', 'LineWidth', 2, 'DisplayName', 'Power model');
+plot(Time, Y_cum_L_full, 'r--', 'LineWidth', 2, 'DisplayName', 'Linear model');
+
+% Sample markers with error bars
+errorbar(SAMPLE_times, Y_cum_P_sample, CI_sample_P, 'bo', ...
+    'MarkerSize', 5, 'MarkerFaceColor', 'b', 'LineWidth', 1, ...
+    'HandleVisibility', 'off');
+errorbar(SAMPLE_times, Y_cum_L_sample, CI_sample_L, 'rs', ...
+    'MarkerSize', 5, 'MarkerFaceColor', 'r', 'LineWidth', 1, ...
+    'HandleVisibility', 'off');
+
+xlabel('Time [min]')
+ylabel('Cumulative yield [g]')
+title(sprintf('Model predictions — %d bar  (J = %.4e)', P_val, best_j))
+legend('Location', 'southeast')
+grid on
+
+%% Plot model outputs: Differentiated yield with CI
+figure('Name', sprintf('Model Outputs - Differentiated Yield — %d bar', P_val), 'NumberTitle', 'off');
+
+bar_width = 0.35;
+bar_x = 1:numel(Y_diff_P);
+
+bar(bar_x - bar_width/2, Y_diff_P, bar_width, 'FaceColor', [0.2 0.4 0.8], ...
+    'DisplayName', 'Power model'); hold on;
+bar(bar_x + bar_width/2, Y_diff_L, bar_width, 'FaceColor', [0.8 0.2 0.2], ...
+    'DisplayName', 'Linear model');
+
+% Error bars on top of bars
+errorbar(bar_x - bar_width/2, Y_diff_P, CI_diff_P, 'k.', ...
+    'LineWidth', 1.2, 'HandleVisibility', 'off');
+errorbar(bar_x + bar_width/2, Y_diff_L, CI_diff_L, 'k.', ...
+    'LineWidth', 1.2, 'HandleVisibility', 'off');
+
+xlabel('Sample interval')
+ylabel('Differentiated yield [g]')
+title(sprintf('Interval-wise yield — %d bar', P_val))
+legend('Location', 'northeast')
+grid on
+
+%% Plot model outputs: Cumulative yield + operating conditions (combined)
+figure('Name', sprintf('Model Outputs and Operating Conditions — %d bar', P_val), 'NumberTitle', 'off');
+
+% Top: cumulative yield with CI
+subplot(3,1,1)
+fill([Time, fliplr(Time)], ...
+     [Y_cum_P_full + CI_full_P, fliplr(Y_cum_P_full - CI_full_P)], ...
+     'b', 'FaceAlpha', 0.15, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+hold on;
+fill([Time, fliplr(Time)], ...
+     [Y_cum_L_full + CI_full_L, fliplr(Y_cum_L_full - CI_full_L)], ...
+     'r', 'FaceAlpha', 0.15, 'EdgeColor', 'none', 'HandleVisibility', 'off');
+plot(Time, Y_cum_P_full, 'b-', 'LineWidth', 2, 'DisplayName', 'Power');
+plot(Time, Y_cum_L_full, 'r--', 'LineWidth', 2, 'DisplayName', 'Linear');
+ylabel('Cumulative yield [g]')
+legend('Location', 'southeast')
+title(sprintf('Best start #%d — %d bar:  J = %.4e', best_idx, P_val, best_j))
+grid on
+
+% Middle: temperature
+subplot(3,1,2)
+stairs(Time, [best_T, best_T(end)] - 273, 'k-', 'LineWidth', 2)
+ylabel('T [C]')
+grid on
+
+% Bottom: flow rate
+subplot(3,1,3)
+stairs(Time, [best_F, best_F(end)] * 1e5, 'k-', 'LineWidth', 2)
+xlabel('Time [min]')
+ylabel('F [kg/s x 1e-5]')
+grid on
+
+%% Save results for this pressure
+save_name = sprintf('multistart_results_%dbar.mat', P_val);
+save(save_name, ...
+    'results_T', 'results_F', 'results_j', 'success', ...
+    'best_idx', 'best_j', 'K_out', 'P_val', ...
+    'feedTemp_all', 'F_scaled_all', 'T_lb', 'T_ub', 'F_lb', 'F_ub', 'N_starts', 'nlp_opts', ...
+    'Y_cum_P_full', 'Y_cum_L_full', 'Y_cum_P_sample', 'Y_cum_L_sample', ...
+    'Y_diff_P', 'Y_diff_L', ...
+    'CI_full_P', 'CI_full_L', 'CI_sample_P', 'CI_sample_L', ...
+    'CI_diff_P', 'CI_diff_L', ...
+    'var_full_P', 'var_full_L');
+fprintf('Results saved to %s\n', save_name);
+
+end  % for p_idx = 1:N_press
+
+%% Summary: best Jeffreys divergence vs extraction pressure
+fprintf('\n=== Pressure Sweep Summary ===\n');
+fprintf('%12s | %14s\n', 'Pressure [bar]', 'J_best');
+fprintf('%s\n', repmat('-', 1, 30));
+for p_idx = 1:N_press
+    fprintf('%14d | %14.6e\n', pressures_bar(p_idx), best_j_all(p_idx));
+end
+
+figure('Name', 'Jeffreys Divergence vs Pressure', 'NumberTitle', 'off');
+plot(pressures_bar, best_j_all, 'ko-', 'LineWidth', 2, 'MarkerSize', 8, ...
+    'MarkerFaceColor', 'k');
+xlabel('Extraction pressure [bar]')
+ylabel('J_{best} (Jeffreys divergence)')
+title('Optimal model-discrimination criterion vs extraction pressure')
+grid on
+
+%% -----------------------------------------------------------------------
+%  Local helper functions  (must appear after all script statements)
+%  -----------------------------------------------------------------------
+function localProgress(pkt, ctr, n_workers, N_starts)
+% Called by afterEach(dq, ...) on the client thread every time a worker
+% sends a progress packet.  ctr is a containers.Map (handle object), so
+% mutations here are visible across calls.
+
+    % --- Update mutable counters ---
+    ctr('n_done')   = ctr('n_done')   + 1;
+    ctr('sum_time') = ctr('sum_time') + pkt.elapsed_s;
+
+    n_done   = ctr('n_done');
+    sum_time = ctr('sum_time');
+
+    % --- Estimate remaining wall-clock time ---
+    mean_t      = sum_time / n_done;          % avg serial time per start [s]
+    n_remaining = N_starts - n_done;
+    eta_s       = (n_remaining / n_workers) * mean_t;  % parallel ETA [s]
+
+    % --- Format ETA string ---
+    if n_remaining == 0
+        eta_str = 'done';
+    elseif eta_s < 60
+        eta_str = sprintf('~%.0f s',   eta_s);
+    elseif eta_s < 3600
+        eta_str = sprintf('~%.1f min', eta_s / 60);
+    else
+        eta_str = sprintf('~%.1f h',   eta_s / 3600);
+    end
+
+    % --- Format status / objective ---
+    if pkt.ok
+        status_str = 'OK';
+        j_str      = sprintf('%+.6e', pkt.j_val);
+    else
+        status_str = 'FAIL';
+        j_str      = sprintf('%-16s', '-Inf');
+    end
+
+    fprintf('Start %2d  %6s  %16s  %6.1f s   ETA %-12s  (%d/%d done)\n', ...
+        pkt.idx, status_str, j_str, pkt.elapsed_s, eta_str, n_done, N_starts);
+
+    if ~pkt.ok && ~isempty(pkt.msg)
+        fprintf('          >> %s\n', pkt.msg);
+    end
+end
 
 
 

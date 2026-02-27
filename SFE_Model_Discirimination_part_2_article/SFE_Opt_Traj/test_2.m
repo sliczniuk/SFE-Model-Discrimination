@@ -9,7 +9,7 @@ fprintf('=======================================================================
 
 %% Optimizer Settings - IMPROVED CONVERGENCE
 nlp_opts = struct;
-nlp_opts.ipopt.max_iter              = 0;           % Increased from 50
+nlp_opts.ipopt.max_iter              = 75;           % Increased from 50
 %nlp_opts.ipopt.max_cpu_time          = Time_max * 3600;
 nlp_opts.ipopt.tol                   = 1e-7;          % Convergence tolerance
 nlp_opts.ipopt.acceptable_tol        = 1e-5;          % Backup tolerance
@@ -40,7 +40,7 @@ k1_val  = cell2mat(Parameters((0:3) + 44) );
 k2_val  = cell2mat(Parameters((4:9) + 44) );
 
 %% Set up the simulation
-timeStep  = 15;  % Time step [min]
+timeStep  =  5;  % Time step [min]
 finalTime = 600; % Extraction time [min]
 Time      = 0 : timeStep: finalTime;
 
@@ -171,12 +171,36 @@ Cov_power_cases  = {Cov_power_cum,  Cov_power_diff,  Cov_power_norm};
 Cov_linear_cases = {Cov_linear_cum, Cov_linear_diff, Cov_linear_norm};
 sigma2_cases = [2.45e-2, 1.386e-3, 1.007e-2]; % Mean empirical sigma as given in the report
 
-% Input vectors
-feedTemp_0 = linspace(307, 307, N_Time);
-feedTemp   = opti.variable(numel(feedTemp_0))';
-feedPress  = 150 * ones(1, N_Time);
-feedFlow_0 = linspace(5.5, 5.5, N_Time) * 1e-5;
-feedFlow   = opti.variable(numel(feedFlow_0))' ;
+% Input vectors (optimize in normalized coordinates for better conditioning)
+feedPress  = 200 * ones(1, N_Time);
+
+T_min = 303;
+T_max = 313;
+F_min = 3.3e-5;
+F_max = 6.7e-5;
+
+% Random initial trajectories (piecewise-linear, reproducible)
+rng(1);
+n_init_knots = 6;
+init_knot_idx = round(linspace(1, N_Time, n_init_knots));
+temp_knots = T_min + (T_max - T_min) * rand(1, n_init_knots);
+flow_knots = F_min + (F_max - F_min) * rand(1, n_init_knots);
+feedTemp_0 = interp1(init_knot_idx, temp_knots, 1:N_Time, 'linear');
+feedFlow_0 = interp1(init_knot_idx, flow_knots, 1:N_Time, 'linear');
+
+T_mid  = 0.5 * (T_min + T_max);
+T_half = 0.5 * (T_max - T_min);
+F_mid  = 0.5 * (F_min + F_max);
+F_half = 0.5 * (F_max - F_min);
+
+zFeedTemp = opti.variable(1, numel(feedTemp_0));  % normalized to [-1, 1]
+zFeedFlow = opti.variable(1, numel(feedFlow_0));  % normalized to [-1, 1]
+
+feedTemp = T_mid + T_half * zFeedTemp;
+feedFlow = F_mid + F_half * zFeedFlow;
+
+zFeedTemp_0 = (feedTemp_0 - T_mid) / T_half;
+zFeedFlow_0 = (feedFlow_0 - F_mid) / F_half;
 
 T         = feedTemp(1);
 P         = feedPress(1);
@@ -244,19 +268,23 @@ Sigma_r_L = Sigma_r_L + eps_reg*I;
 
 j_1 = trace( Sigma_r_P * (Sigma_r_L\I) + Sigma_r_L * (Sigma_r_P\I) - 2*I );
 j_2 = residuals * ((Sigma_r_P\I) + (Sigma_r_L\I)) * residuals';
-j   = j_1 + j_2;
+%j   = j_1 + j_2;
+j = residuals(end).^2;
+j = j * 1e3;
 
 
-% Non-negativity constraints
-opti.subject_to(303 <= feedTemp <= 313);
-opti.subject_to(3.3e-5 <= feedFlow <= 6.7e-5);
+% Box constraints in normalized coordinates (CasADi MATLAB 3.6.x compatible)
+opti.subject_to(zFeedTemp >= -1);
+opti.subject_to(zFeedTemp <= 1);
+opti.subject_to(zFeedFlow >= -1);
+opti.subject_to(zFeedFlow <= 1);
 
 opti.set_value(k1, k1_val);
 opti.set_value(k2, k2_val);
 
 opti.minimize(-j);
-opti.set_initial(feedTemp, feedTemp_0);
-opti.set_initial(feedFlow, feedFlow_0);
+opti.set_initial(zFeedTemp, zFeedTemp_0);
+opti.set_initial(zFeedFlow, zFeedFlow_0);
 
 %{\
 try
@@ -274,40 +302,17 @@ status = opti.stats();
 
 %%
 subplot(2,1,1)
+hold on
+stairs(Time, [feedTemp_0(1,:), feedTemp_0(1,end)]-273, LineWidth=2 )
 stairs(Time, [K_out(1,:), K_out(1,end)]-273, LineWidth=2 )
+hold off
 xlabel('Time min')
 ylabel('T C')
 
 subplot(2,1,2)
-stairs(Time, [K_out(2,:), K_out(2,end)]*1e5, LineWidth=2 )
+hold on
+stairs(Time, [feedFlow_0(1,:), feedFlow_0(1,end)], LineWidth=2 )
+stairs(Time, [K_out(2,:), K_out(2,end)], LineWidth=2 )
+hold off
 xlabel('Time min')
-ylabel('F kg/s 1e-5')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+ylabel('F kg/s')
