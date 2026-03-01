@@ -19,15 +19,16 @@ config.F_min = 3.3e-5;
 config.F_max = 6.7e-5;
 
 % Random initial trajectory generation
-config.n_init_knots = 15;
+config.n_init_knots = 10;
+config.randomize_knot_locations = true;  % true => uneven segment lengths
 
 % Objective selection / scaling
-config.use_full_discrimination_objective = false;  % false => residual(end)^2
+config.use_full_discrimination_objective = true;  % false => residual(end)^2
 config.objective_scale = 1e0;
 
 % IPOPT / CasADi solver options
 config.ipopt = struct;
-config.ipopt.max_iter              = 100;
+config.ipopt.max_iter              = 0;
 config.ipopt.tol                   = 1e-7;
 config.ipopt.acceptable_tol        = 1e-5;
 config.ipopt.acceptable_iter       = 10;
@@ -35,21 +36,16 @@ config.ipopt.hessian_approximation = 'limited-memory';
 config.ipopt.sb                    = 'yes';  % suppress Ipopt banner
 
 % Run / multi-start defaults
-config.N = 60;
+config.N = 6;
 config.seeds = [];
 config.verbose_each_run = false;
-config.output_detail_multistart = 'full';
-config.output_detail_best       = 'full';
-config.resolve_best_seed        = false;  % false => reuse best result from screening
-config.chunkSize = 6; %[];
 config.collect_timings = false;
 config.show_progress   = true;
-config.maxWorkers      = 6;
+config.maxWorkers      = [];
 
 % Result saving / export
 config.save_results = true;
 config.save_dir = '';  % '' => current working directory
-config.save_filename_policy = 'timestamped';
 config.save_prefix = 'multistart_results';
 config.save_scope = 'everything';
 config.save_plot = false;  % MAT only by default

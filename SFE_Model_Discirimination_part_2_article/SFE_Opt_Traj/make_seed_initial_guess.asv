@@ -6,12 +6,31 @@ if nargin < 1 || isempty(seed)
 end
 
 N_Time = problem.static.N_Time;
+n_knots = max(2, min(config.n_init_knots, N_Time));
 
 rng(seed);
-init_knot_idx = round(linspace(1, N_Time, config.n_init_knots));
+randomize_knot_locations = false;
+if isfield(config, 'randomize_knot_locations')
+    randomize_knot_locations = logical(config.randomize_knot_locations);
+end
 
-temp_knots = problem.static.T_min + (problem.static.T_max - problem.static.T_min) * rand(1, config.n_init_knots);
-flow_knots = problem.static.F_min + (problem.static.F_max - problem.static.F_min) * rand(1, config.n_init_knots);
+if randomize_knot_locations && n_knots > 2
+    interior_pool = 2:(N_Time-1);
+    n_interior = n_knots - 2;
+    if numel(interior_pool) >= n_interior
+        pick = randperm(numel(interior_pool), n_interior);
+        interior_idx = sort(interior_pool(pick));
+        init_knot_idx = [1, interior_idx, N_Time];
+    else
+        % Fallback for very short horizons.
+        init_knot_idx = round(linspace(1, N_Time, n_knots));
+    end
+else
+    init_knot_idx = round(linspace(1, N_Time, n_knots));
+end
+
+temp_knots = problem.static.T_min + (problem.static.T_max - problem.static.T_min) * rand(1, n_knots);
+flow_knots = problem.static.F_min + (problem.static.F_max - problem.static.F_min) * rand(1, n_knots);
 
 feedTemp_0 = interp1(init_knot_idx, temp_knots, 1:N_Time, 'linear');
 feedFlow_0 = interp1(init_knot_idx, flow_knots, 1:N_Time, 'linear');

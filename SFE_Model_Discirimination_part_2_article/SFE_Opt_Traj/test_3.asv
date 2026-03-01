@@ -179,32 +179,18 @@ T_max = 313;
 F_min = 3.3e-5;
 F_max = 6.7e-5;
 
-% Random initial trajectories (piecewise-linear, reproducible)
-rng(1);
-n_init_knots  = 6;
-interior_pool = 2:(N_Time-1);
-n_interior    = n_init_knots - 2;
-pick          = randperm(numel(interior_pool), n_interior);
-interior_idx  = sort(interior_pool(pick));
-init_knot_idx = [1, interior_idx, N_Time];
-temp_knots = T_min + (T_max - T_min) * rand(1, n_init_knots);
-flow_knots = F_min + (F_max - F_min) * rand(1, n_init_knots);
-feedTemp_0 = interp1(init_knot_idx, temp_knots, 1:N_Time, 'linear');
-feedFlow_0 = interp1(init_knot_idx, flow_knots, 1:N_Time, 'linear');
+n_init_knots = 6;
 
 T_mid  = 0.5 * (T_min + T_max);
 T_half = 0.5 * (T_max - T_min);
 F_mid  = 0.5 * (F_min + F_max);
 F_half = 0.5 * (F_max - F_min);
 
-zFeedTemp = opti.variable(1, numel(feedTemp_0));  % normalized to [-1, 1]
-zFeedFlow = opti.variable(1, numel(feedFlow_0));  % normalized to [-1, 1]
+zFeedTemp = opti.variable(1, N_Time);  % normalized to [-1, 1]
+zFeedFlow = opti.variable(1, N_Time);  % normalized to [-1, 1]
 
 feedTemp = T_mid + T_half * zFeedTemp;
 feedFlow = F_mid + F_half * zFeedFlow;
-
-zFeedTemp_0 = (feedTemp_0 - T_mid) / T_half;
-zFeedFlow_0 = (feedFlow_0 - F_mid) / F_half;
 
 T         = feedTemp(1);
 P         = feedPress(1);
@@ -276,7 +262,6 @@ j_2 = residuals * ((Sigma_r_P\I) + (Sigma_r_L\I)) * residuals';
 j = residuals(end).^2;
 j = j * 1e3;
 
-
 % Box constraints in normalized coordinates (CasADi MATLAB 3.6.x compatible)
 opti.subject_to(zFeedTemp >= -1);
 opti.subject_to(zFeedTemp <= 1);
@@ -287,36 +272,70 @@ opti.set_value(k1, k1_val);
 opti.set_value(k2, k2_val);
 
 opti.minimize(-j);
-opti.set_initial(zFeedTemp, zFeedTemp_0);
-opti.set_initial(zFeedFlow, zFeedFlow_0);
 
-%{\
-try
-    sol = opti.solve();
-    valfun = @(x) sol.value(x);
-    success = true;
-catch
-    valfun = @(x) opti.debug.value(x);
-    success = false;
+%% Multistart
+N_seeds        = 3;
+j_best         = -Inf;
+K_best         = [];
+feedTemp0_best = NaN(1, N_Time);
+feedFlow0_best = NaN(1, N_Time);
+
+for s = 1:N_seeds
+    % Initial guess for seed s
+    rng(s);
+    interior_pool = 2:(N_Time-1);
+    n_interior    = n_init_knots - 2;
+    pick          = randperm(numel(interior_pool), n_interior);
+    interior_idx  = sort(interior_pool(pick));
+    init_knot_idx = [1, interior_idx, N_Time];
+    temp_knots    = T_min + (T_max - T_min) * rand(1, n_init_knots);
+    flow_knots    = F_min + (F_max - F_min) * rand(1, n_init_knots);
+    feedTemp_0    = interp1(init_knot_idx, temp_knots, 1:N_Time, 'linear');
+    feedFlow_0    = interp1(init_knot_idx, flow_knots, 1:N_Time, 'linear');
+    zFeedTemp_0   = (feedTemp_0 - T_mid) / T_half;
+    zFeedFlow_0   = (feedFlow_0 - F_mid) / F_half;
+
+    opti.set_initial(zFeedTemp, zFeedTemp_0);
+    opti.set_initial(zFeedFlow, zFeedFlow_0);
+
+    % Solve
+    try
+        sol     = opti.solve();
+        valfun  = @(x) sol.value(x);
+        success = true;
+    catch
+        valfun  = @(x) opti.debug.value(x);
+        success = false;
+    end
+
+    K_out = full(valfun([feedTemp; feedFlow]));
+    j_s   = full(valfun(j));
+    fprintf('seed=%3d | success=%d | j=%.6e\n', s, success, j_s);
+
+    if j_s > j_best
+        j_best         = j_s;
+        K_best         = K_out;
+        feedTemp0_best = feedTemp_0;
+        feedFlow0_best = feedFlow_0;
+    end
 end
 
-K_out = full(valfun([feedTemp; feedFlow]));
-obj   = full(valfun(j));
-status = opti.stats();
-
-%%
+%% Plot best result
+figure;
 subplot(2,1,1)
 hold on
-stairs(Time, [feedTemp_0(1,:), feedTemp_0(1,end)]-273, LineWidth=2 )
-stairs(Time, [K_out(1,:), K_out(1,end)]-273, LineWidth=2 )
+stairs(Time, [feedTemp0_best, feedTemp0_best(end)] - 273, LineWidth=2)
+stairs(Time, [K_best(1,:),    K_best(1,end)]       - 273, LineWidth=2)
 hold off
-xlabel('Time min')
-ylabel('T C')
+legend('Initial (best seed)', 'Optimised')
+xlabel('Time [min]')
+ylabel('T [°C]')
 
 subplot(2,1,2)
 hold on
-stairs(Time, [feedFlow_0(1,:), feedFlow_0(1,end)], LineWidth=2 )
-stairs(Time, [K_out(2,:), K_out(2,end)], LineWidth=2 )
+stairs(Time, [feedFlow0_best, feedFlow0_best(end)], LineWidth=2)
+stairs(Time, [K_best(2,:),    K_best(2,end)],       LineWidth=2)
 hold off
-xlabel('Time min')
-ylabel('F kg/s')
+legend('Initial (best seed)', 'Optimised')
+xlabel('Time [min]')
+ylabel('F [kg/s]')

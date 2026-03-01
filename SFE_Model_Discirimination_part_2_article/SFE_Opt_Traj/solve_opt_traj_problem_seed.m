@@ -50,6 +50,10 @@ t_solve_elapsed = toc(t_solve);
 t_post = tic;
 obj = local_try_eval(valfun, problem.j, NaN);
 j_final = obj;
+K_out = local_try_eval(valfun, [problem.feedTemp; problem.feedFlow], []);
+if ~isempty(K_out)
+    K_out = full(K_out);
+end
 
 stats = opti.stats();
 status_text = '';
@@ -78,13 +82,16 @@ out.t_problem_build = options.t_problem_build;
 out.t_solve       = t_solve_elapsed;
 out.t_post        = NaN;
 out.t_total       = NaN;
+out.feedTemp      = [];
+out.feedFlow      = [];
+if ~isempty(K_out)
+    out.feedTemp = K_out(1, :);
+    out.feedFlow = K_out(2, :);
+end
+out.feedTemp0     = init.feedTemp0;
+out.feedFlow0     = init.feedFlow0;
 
 if strcmpi(options.output_detail, 'full')
-    K_out = local_try_eval(valfun, [problem.feedTemp; problem.feedFlow], []);
-    if ~isempty(K_out)
-        K_out = full(K_out);
-    end
-
     Y_P_num     = local_try_eval(valfun, problem.Y_P_sym, []);
     Y_L_num     = local_try_eval(valfun, problem.Y_L_sym, []);
     Sigma_r_P_n = local_try_eval(valfun, problem.Sigma_r_P, []);
@@ -108,14 +115,6 @@ if strcmpi(options.output_detail, 'full')
     ci_P    = local_row(ci_P);
     ci_L    = local_row(ci_L);
 
-    out.feedTemp      = [];
-    out.feedFlow      = [];
-    if ~isempty(K_out)
-        out.feedTemp = K_out(1, :);
-        out.feedFlow = K_out(2, :);
-    end
-    out.feedTemp0     = init.feedTemp0;
-    out.feedFlow0     = init.feedFlow0;
     out.Time          = problem.static.Time;
     out.yieldTime     = problem.static.Time(problem.static.N_Sample);
     out.yieldPower    = Y_P_num;

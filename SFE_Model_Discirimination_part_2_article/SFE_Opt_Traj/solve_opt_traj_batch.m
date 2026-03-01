@@ -1,5 +1,5 @@
 function results = solve_opt_traj_batch(seeds_block, config, batch_options)
-%SOLVE_OPT_TRAJ_BATCH Solve a block of seeds while reusing static setup/problem build.
+%SOLVE_OPT_TRAJ_BATCH Solve one or more seeds with shared setup per call.
 
 if nargin < 3
     batch_options = struct;
