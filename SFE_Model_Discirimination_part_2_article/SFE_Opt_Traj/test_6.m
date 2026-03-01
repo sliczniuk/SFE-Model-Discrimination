@@ -2,31 +2,26 @@
 startup;
 
 fprintf('=============================================================================\n');
-fprintf('   Optimal trajectory for model discrimination (parfor multistart)\n');
+fprintf('   Optimal trajectory for model discrimination (multiple shooting, parfor)\n');
 fprintf('=============================================================================\n\n');
 
 %% Run configuration
-N_seeds      = 36;
+N_seeds      = 6;
 N_workers    = 6;
 n_init_knots = 40;
-if ~exist('P_var', 'var'); P_var = 150; end   % default; override from CLI: -r "P_var=250; test_5; exit"
+if ~exist('P_var', 'var'); P_var = 200; end   % default; override from CLI: -r "P_var=250; test_6; exit"
 casadi_path  = 'C:\Dev\casadi-3.6.3-windows64-matlab2018b';
-setenv('MW_MINGW64_LOC', 'C:\ProgramData\MATLAB\SupportPackages\R2023a\3P.instrset\mingw_w64.instrset');
 
 %% Optimizer Settings
 % Plain struct — no CasADi objects; serializable to parfor workers
 nlp_opts = struct;
-nlp_opts.ipopt.max_iter              = 100;
+nlp_opts.ipopt.max_iter              = 10;
 nlp_opts.ipopt.tol                   = 1e-7;
 nlp_opts.ipopt.acceptable_tol        = 1e-5;
 nlp_opts.ipopt.acceptable_iter       = 10;
 nlp_opts.ipopt.hessian_approximation = 'limited-memory';
-%nlp_opts.ipopt.limited_memory_max_history = 20;   % default: 5
 nlp_opts.ipopt.print_level           = 0;   % suppress per-worker IPOPT output
 nlp_opts.print_time                  = 0;   % suppress CasADi solver timing table
-%nlp_opts.jit                         = true;   % compile NLP functions to native C (MinGW64)
-%nlp_opts.compiler                    = 'shell'; % invoke gcc via system shell
-%nlp_opts.jit_options.flags           = '-O3';   % GCC optimisation level (-O3 for MinGW64)
 
 fprintf('=== Run Configuration ===\n');
 fprintf('Seeds: %d | Workers: %d | Knots: %d | Max iter: %d\n\n', ...
@@ -217,9 +212,26 @@ parfor s = 1:N_seeds
         'feedTemp0', feedTemp0_all(:, s)', 'feedFlow0', feedFlow0_all(:, s)');
 
     try
+        %% --- Step 0: Extract initial guess and compute numeric x0 ---
+        % Extract control guess in physical units (needed before CasADi build
+        % to forward-simulate the state trajectory for the initial guess).
+        z0_s        = z0_mat(:, s);
+        zFeedTemp_0 = reshape(z0_s(1:N_Time),     1, N_Time);
+        zFeedFlow_0 = reshape(z0_s(N_Time+1:end), 1, N_Time);
+        feedTemp_0  = T_mid + T_half * zFeedTemp_0;   % [K]
+        feedFlow_0  = F_mid + F_half * zFeedFlow_0;   % [m^3/s]
+
         import casadi.*
 
-        %% --- Build CasADi problem (identical to test_3 build section) ---
+        % Numeric x0: evaluate thermodynamics at the initial control guess T(1)
+        T_init   = feedTemp_0(1);
+        P_init   = feedPress(1);
+        Z_init   = full(Compressibility(T_init, P_init, Parameters));
+        rho_init = full(rhoPB_Comp(T_init, P_init, Z_init, Parameters));
+        h_init   = rho_init * full(SpecificEnthalpy(T_init, P_init, Z_init, rho_init, Parameters));
+        x0_num   = [C0fluid'; C0solid * bed_mask; h_init * ones(nstages, 1); P_init; 0];
+
+        %% --- Build CasADi problem ---
         opti = casadi.Opti();
         opti.solver('ipopt', nlp_opts);
 
@@ -242,28 +254,53 @@ parfor s = 1:N_seeds
         rho          = rhoPB_Comp(T, P, Z, Parameters);
         enthalpy_rho = rho * SpecificEnthalpy(T, P, Z, rho, Parameters);
 
+        % Symbolic x0: first state node — enthalpy depends on symbolic feedTemp(1)
         x0 = [C0fluid'; C0solid * bed_mask; enthalpy_rho * ones(nstages, 1); P; 0];
 
         Parameters_sym          = MX(cell2mat(Parameters));
         Parameters_sym(which_k) = k(1:numel(which_k));
         U_base                  = [uu'; repmat(Parameters_sym, 1, N_Time)];
 
-        f_power_nom       = @(x, u) modelSFE(x, u, bed_mask, timeStep_in_sec, ...
+        %% --- Step 1: Build integrators with map (not mapaccum) ---
+        % F.map(N) evaluates y_k = F(x_k, u_k) for all k independently (no chain).
+        % F.mapaccum(N) chains x_{k+1} = F(x_k, u_k) — used in single shooting.
+        f_power_nom     = @(x, u) modelSFE(x, u, bed_mask, timeStep_in_sec, ...
             'Power_model', epsi_mask, one_minus_epsi_mask);
-        F_power_nom       = buildIntegrator(f_power_nom, [Nx, Nu], timeStep_in_sec, 'cvodes');
-        F_accum_power_nom = F_power_nom.mapaccum('F_accum_power', N_Time);
+        F_power_nom     = buildIntegrator(f_power_nom, [Nx, Nu], timeStep_in_sec, 'cvodes');
+        F_mapped_power  = F_power_nom.map(N_Time);
 
-        f_linear_nom       = @(x, u) modelSFE(x, u, bed_mask, timeStep_in_sec, ...
+        f_linear_nom    = @(x, u) modelSFE(x, u, bed_mask, timeStep_in_sec, ...
             'Linear_model', epsi_mask, one_minus_epsi_mask);
-        F_linear_nom       = buildIntegrator(f_linear_nom, [Nx, Nu], timeStep_in_sec, 'cvodes');
-        F_accum_linear_nom = F_linear_nom.mapaccum('F_accum_linear', N_Time);
+        F_linear_nom    = buildIntegrator(f_linear_nom, [Nx, Nu], timeStep_in_sec, 'cvodes');
+        F_mapped_linear = F_linear_nom.map(N_Time);
 
-        X_power_nom  = F_accum_power_nom(x0, U_base);
-        X_linear_nom = F_accum_linear_nom(x0, U_base);
+        %% --- Step 2: State decision variables (Nx × N_Time each) ---
+        % Each column X_nodes(:,k) = state at the START of interval k.
+        X_power_nodes  = opti.variable(Nx, N_Time);
+        X_linear_nodes = opti.variable(Nx, N_Time);
 
-        Y_cum_P_sym = [0, X_power_nom(Nx, :)];
+        %% --- Step 3: Evaluate integrator at each node independently ---
+        % X_ends(:,k) = F( X_nodes(:,k), U_base(:,k) ) — end state of interval k.
+        % Sensitivity spans only one 5-min interval (not the full 120-step chain).
+        X_power_ends  = F_mapped_power( X_power_nodes,  U_base);   % Nx × N_Time
+        X_linear_ends = F_mapped_linear(X_linear_nodes, U_base);   % Nx × N_Time
+
+        %% --- Step 4: Initial condition + continuity constraints ---
+        % Pin first node to symbolic initial state.
+        % (x0 is symbolic because enthalpy depends on the decision variable feedTemp(1))
+        opti.subject_to(X_power_nodes(:, 1)      == x0);
+        opti.subject_to(X_linear_nodes(:, 1)     == x0);
+
+        % Continuity: end of interval k must equal start of interval k+1
+        opti.subject_to(X_power_nodes(:, 2:end)  == X_power_ends(:, 1:end-1));
+        opti.subject_to(X_linear_nodes(:, 2:end) == X_linear_ends(:, 1:end-1));
+
+        %% --- Step 5: Output extraction (unchanged from single shooting) ---
+        % X_ends(Nx,:) = cumulative yield at end of each interval; prepend 0 for t=0
+        Y_cum_P_sym = [0, X_power_ends(Nx, :)];
         Y_cum_P_sym = Y_cum_P_sym(N_Sample);
-        Y_cum_L_sym = [0, X_linear_nom(Nx, :)];
+
+        Y_cum_L_sym = [0, X_linear_ends(Nx, :)];
         Y_cum_L_sym = Y_cum_L_sym(N_Sample);
 
         Y_diff_P_sym = Y_cum_P_sym(2:end) - Y_cum_P_sym(1:end-1);
@@ -285,12 +322,11 @@ parfor s = 1:N_seeds
         Sigma_r_P = Sigma_r_P + eps_reg * I;
         Sigma_r_L = Sigma_r_L + eps_reg * I;
 
-        %j_1 = trace( Sigma_r_P * (Sigma_r_L\I) + Sigma_r_L * (Sigma_r_P\I) - 2*I );
+        j_1 = trace( Sigma_r_P * (Sigma_r_L\I) + Sigma_r_L * (Sigma_r_P\I) - 2*I );
         j_2 = residuals * ((Sigma_r_P\I) + (Sigma_r_L\I)) * residuals';
         %j  = j_1 + j_2;
-        %j  = residuals(end).^2;
-        %j  = j * 1e3;
-        j = j_2;
+        j  = residuals(end).^2;
+        j  = j * 1e3;
 
         opti.subject_to(zFeedTemp >= -1);
         opti.subject_to(zFeedTemp <= 1);
@@ -300,20 +336,36 @@ parfor s = 1:N_seeds
         opti.set_value(k1, k1_val);
         opti.set_value(k2, k2_val);
 
-        alpha = 1e-2;
-        beta  = 1e-2;
+        alpha = 1e-3;
+        beta  = 1e-3;
         j_smooth = alpha * sum(diff(zFeedTemp, 1, 2).^2) + ...
                    beta  * sum(diff(zFeedFlow, 1, 2).^2);
         opti.minimize(-(j - j_smooth));
+
         %opti.minimize(-j);
 
-        %% --- Initial guess from pre-generated matrix ---
-        z0_s        = z0_mat(:, s);
-        zFeedTemp_0 = reshape(z0_s(1:N_Time),     1, N_Time);
-        zFeedFlow_0 = reshape(z0_s(N_Time+1:end), 1, N_Time);
-
+        %% --- Initial guesses ---
+        % Control trajectory
         opti.set_initial(zFeedTemp, zFeedTemp_0);
         opti.set_initial(zFeedFlow, zFeedFlow_0);
+
+        %% --- Step 6: Forward-simulate to initialise state nodes ---
+        % Integrate with nominal parameters and the initial control guess.
+        % params_num already contains the nominal k1_val / k2_val values.
+        params_num    = cell2mat(Parameters);
+        X_power_init  = zeros(Nx, N_Time);
+        X_linear_init = zeros(Nx, N_Time);
+        x_p = x0_num;
+        x_l = x0_num;
+        for kk = 1:N_Time
+            U_k = [feedTemp_0(kk); feedPress(kk); feedFlow_0(kk); params_num];
+            x_p = full(F_power_nom( x_p, U_k));
+            x_l = full(F_linear_nom(x_l, U_k));
+            X_power_init(:, kk)  = x_p;
+            X_linear_init(:, kk) = x_l;
+        end
+        opti.set_initial(X_power_nodes,  X_power_init);
+        opti.set_initial(X_linear_nodes, X_linear_init);
 
         %% --- Solve ---
         try
@@ -331,8 +383,8 @@ parfor s = 1:N_seeds
             r.j_initial = -stats.iterations.obj(1);
         end
 
-        K_out    = full(valfun([feedTemp; feedFlow]));
-        r.j      = full(valfun(j));
+        K_out      = full(valfun([feedTemp; feedFlow]));
+        r.j        = full(valfun(j));
         r.feedTemp = K_out(1,:);
         r.feedFlow = K_out(2,:);
 
@@ -345,8 +397,8 @@ end
 fprintf('\nParallel solve complete: %.1f s total\n\n', toc(t_par));
 
 %% Save results  (before plot — guards against AWT/display errors)
-save([num2str(P_var),'_bar_results.mat'], 'results');
-fprintf('Results saved to %d_bar_results.mat\n', P_var);
+%save([num2str(P_var),'_bar_ms_results.mat'], 'results');
+%fprintf('Results saved to %d_bar_ms_results.mat\n', P_var);
 
 %% Select best result
 %{
