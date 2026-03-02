@@ -6,7 +6,7 @@ fprintf('   Optimal trajectory for model discrimination (parfor multistart)\n');
 fprintf('=============================================================================\n\n');
 
 %% Run configuration
-N_seeds      = 36;
+N_seeds      = 50;
 N_workers    = 6;
 n_init_knots = 40;
 if ~exist('P_var', 'var'); P_var = 150; end   % default; override from CLI: -r "P_var=250; test_5; exit"
@@ -16,7 +16,7 @@ setenv('MW_MINGW64_LOC', 'C:\ProgramData\MATLAB\SupportPackages\R2023a\3P.instrs
 %% Optimizer Settings
 % Plain struct — no CasADi objects; serializable to parfor workers
 nlp_opts = struct;
-nlp_opts.ipopt.max_iter              = 100;
+nlp_opts.ipopt.max_iter              = 150;
 nlp_opts.ipopt.tol                   = 1e-7;
 nlp_opts.ipopt.acceptable_tol        = 1e-5;
 nlp_opts.ipopt.acceptable_iter       = 10;
