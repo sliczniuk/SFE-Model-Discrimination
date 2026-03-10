@@ -4,7 +4,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:web.casadi.org)",
       "WebFetch(domain:groups.google.com)",
-      "WebFetch(domain:arxiv.org)"
+      "WebFetch(domain:arxiv.org)",
+      "Bash(xargs grep -l \"confidence\\\\|interval\\\\|Cov\\\\|covariance\\\\|sigma\")",
+      "Bash(grep -l \"explod\\\\|finite\\\\|derivative\\\\|sens\\\\|dual\" *.m)"
     ]
   }
 }

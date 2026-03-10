@@ -1,0 +1,23 @@
+The likelihood formulation in Eq.~\eqref{eq:loglik} assumes that parameter uncertainty can be incorporated directly in the observation space through the predictive covariance matrix $\Sigma_i^{(k)}$. In this formulation, parameter uncertainty is propagated to the model outputs using a first-order linearisation, resulting in an inflated residual covariance that accounts for both measurement noise and parameter variability. While this approach provides a convenient approximation to the marginal predictive distribution, the likelihood is still evaluated at a point estimate of the parameters and therefore does not correspond to a full marginalisation over the parameter posterior.
+
+To obtain a formulation that is more consistent with Bayesian inference, the model comparison can instead be based on a Laplace approximation to the marginal likelihood. In this approach, the measurement model is written as
+\[
+Y^{(k)}(\Xi) \sim \mathcal{N}\big(y_i^{(k)}(\Xi,\theta),\,\Sigma_Y^{(k)}\big),
+\]
+and the parameters are assigned a Gaussian prior centred at the nominal parameter estimate,
+\[
+\theta \sim \mathcal{N}\big(\theta^*,\,\Sigma_\theta\big).
+\]
+The covariance matrix $\Sigma_\theta$ corresponds to the estimated parameter covariance obtained during the calibration stage and is therefore interpreted as an empirical prior describing the local uncertainty around the fitted parameter vector.
+
+Under these assumptions, the posterior distribution of the parameters can be approximated by a multivariate Gaussian distribution as
+\begin{equation}
+p\left(\theta \mid Y, \Xi \right) = \mathcal{N}\left( \theta^*, \mathcal{A}^{-1} \right),
+\end{equation}
+where the precision matrix is given by
+\begin{equation}
+\mathcal{A} = J^\top \Sigma_Y^{-1} J + \Sigma_\theta^{-1}.
+\end{equation}
+Here, $J = \partial y/\partial\theta$ denotes the Jacobian matrix of the model outputs with respect to the parameters, $\Sigma_Y$ represents the measurement error covariance matrix, and $\Sigma_\theta$ captures the prior parameter covariance.
+
+Using this Gaussian approximation, the marginal likelihood of the model can be approximated via the Laplace method. Compared with Eq.~\eqref{eq:loglik}, the likelihood is evaluated using the measurement covariance $\Sigma_Y^{(k)}$, while parameter uncertainty and model complexity are accounted for through the prior covariance and the curvature matrix $\mathcal{A}$. This formulation introduces an explicit Occam factor through the determinant of the posterior precision matrix, which penalises models with larger effective parameter volumes. Consequently, the empirical Gaussian approach provides a more coherent framework for model discrimination, as both the likelihood and the complexity penalty are derived from the same probabilistic formulation.
