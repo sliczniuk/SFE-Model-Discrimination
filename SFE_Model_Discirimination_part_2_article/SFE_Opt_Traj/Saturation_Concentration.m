@@ -1,11 +1,4 @@
-function FLUID_SAT = Saturation_Concentration(SOLID, shape, Di)
-    import casadi.*
+function [FLUID_SAT] = Saturation_Concentration(SOLID, shape, Di)
 
-    arg = -shape .* SOLID;
-
-    % smooth clipping to avoid huge exponentials
-    arg_lim = 20;
-    arg = arg_lim * tanh(arg / arg_lim);
-
-    FLUID_SAT = Di .* exp(arg);
+    FLUID_SAT = Di .* exp( -shape .* ( SOLID ) );
 end

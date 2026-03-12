@@ -1,30 +1,19 @@
 function re = two_kinetic_model(Csolid, alpha, rho, F, parameters)
-    % Smoothed version to avoid singular/steep gradients
-
+    % Langmuir model with parameters depending on control variables (T, P, F)
+   
     import casadi.*
 
-    k_w_0 = parameters{44};
-    a_w   = parameters{45};
-    b_w   = parameters{46};
-    n     = parameters{47};
+    %% Extract parameters (indices 44-54, 11 parameters)
+    k_w_0      = parameters{44};  % Base half-saturation [kg/m3]
+    a_w        = parameters{45};  % K_m temperature coefficient [kg/m3/K]
+    b_w        = parameters{46};  % K_m pressure coefficient [kg/m3/bar]
+    n          = parameters{47}; % Polynomial order of
+    
+    %%
+    k_w = k_w_0 .* (rho ./ 800).^a_w .* (F ./ 5).^b_w .* 1e-4;
 
-    % Small smoothing constants
-    eps_alpha = 1e-3;
-    eps_rho   = 1e-6;
-    eps_F     = 1e-8;
+    %%
+    beta = 1 ./ ( (alpha + 1).^n );
+    re = (k_w .* (beta) ) .* Csolid;
 
-    % Smooth positive surrogates
-    alpha_shift = alpha + 1;
-    alpha_soft  = sqrt(alpha_shift.^2 + eps_alpha^2);
-
-    rho_soft = sqrt(rho.^2 + eps_rho^2);
-    F_soft   = sqrt(F.^2   + eps_F^2);
-
-    % Kinetic coefficient
-    k_w = k_w_0 .* (rho_soft ./ 800).^a_w .* (F_soft ./ 5).^b_w .* 1e-4;
-
-    % Smoothed singular factor
-    beta = 1 ./ (alpha_soft.^n);
-
-    re = k_w .* beta .* Csolid;
 end

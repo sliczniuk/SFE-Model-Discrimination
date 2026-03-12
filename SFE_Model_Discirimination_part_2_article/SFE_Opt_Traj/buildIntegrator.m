@@ -23,10 +23,10 @@ function F = buildIntegrator(varargin)
 
     % CVODES tolerances for better performance
     if strcmp(method, 'cvodes')
-        options.abstol         = 1e-4;
-        options.reltol         = 1e-2;
+        options.abstol         = 1e-6;
+        options.reltol         = 1e-4;
         options.max_num_steps  = 50000;   % prevent CV_TOO_MUCH_WORK in adjoint pass
-        %options.sensitivity_method = 'staggered';  % more robust for stiff systems
+        options.sensitivity_method = 'staggered';  % more robust for stiff systems
     end
     
     x = MX.sym('x',d(1));

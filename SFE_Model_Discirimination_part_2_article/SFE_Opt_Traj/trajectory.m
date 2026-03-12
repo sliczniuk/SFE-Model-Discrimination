@@ -64,7 +64,7 @@ rho          = rhoPB_Comp(T_sym, P_num, Z, static.Parameters);
 enthalpy_rho = rho * SpecificEnthalpy(T_sym, P_num, Z, rho, static.Parameters);
 x0 = [static.C0fluid';
       static.C0solid * static.bed_mask;
-      enthalpy_rho * ones(static.nstages, 1);
+      (enthalpy_rho / 1e4) * ones(static.nstages, 1);
       P_num; 0];
 
 %% Control and parameter matrix
