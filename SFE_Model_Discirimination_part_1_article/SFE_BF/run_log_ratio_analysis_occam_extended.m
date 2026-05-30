@@ -224,11 +224,6 @@ for cc = 1:N_cases
     hessPen_P = zeros(1, N_exp);
     hessPen_L = zeros(1, N_exp);
 
-    % BIC
-    BIC_P = zeros(1, N_exp);
-    BIC_L = zeros(1, N_exp);
-    Delta_BIC = zeros(1, N_exp);
-
     MSE_P = zeros(1, N_exp);
     MSE_L = zeros(1, N_exp);
     BF    = zeros(1, N_exp);
@@ -399,13 +394,6 @@ for cc = 1:N_cases
         logEv_P_j = logLik_P_j + logPriorNorm_P_j + dP/2 * log(2*pi) + hessPen_P_j;
         logEv_L_j = logLik_L_j + logPriorNorm_L_j + dL/2 * log(2*pi) + hessPen_L_j;
 
-        % ================================================================
-        % BIC as auxiliary complexity check (lower is better)
-        % ================================================================
-        BIC_P_j = -2 * logLik_P_j + dP * log(n_obs);
-        BIC_L_j = -2 * logLik_L_j + dL * log(n_obs);
-        Delta_BIC_j = BIC_L_j - BIC_P_j;   % > 0 favors Power
-
         % Store
         logLik_P(jj) = logLik_P_j;
         logLik_L(jj) = logLik_L_j;
@@ -418,10 +406,6 @@ for cc = 1:N_cases
 
         logEv_P(jj) = logEv_P_j;
         logEv_L(jj) = logEv_L_j;
-
-        BIC_P(jj) = BIC_P_j;
-        BIC_L(jj) = BIC_L_j;
-        Delta_BIC(jj) = Delta_BIC_j;
 
         MSE_P(jj) = mean(residuals_P.^2);
         MSE_L(jj) = mean(residuals_L.^2);
@@ -440,6 +424,10 @@ for cc = 1:N_cases
         BF_P_L_store(cc, jj)  = BF(jj);
 
         % Running aggregate Delta BIC
+        % Note: for jj < N_exp the likelihood is evaluated at the
+        % full-dataset MLE, not the subset MLE, so intermediate values
+        % are approximate. The final value at jj = N_exp is exact.
+        % BIC ignores the empirical prior, unlike the Laplace evidence.
         n_total_running = sum(n_obs_store(1:jj));
         BIC_P_running = -2 * sum(logLik_P(1:jj)) + dP * log(n_total_running);
         BIC_L_running = -2 * sum(logLik_L(1:jj)) + dL * log(n_total_running);
@@ -535,4 +523,5 @@ xlabel('Number of experiment')
 ylabel('$\Delta \mathrm{BIC} = \mathrm{BIC}_L - \mathrm{BIC}_P$')
 xlim([1, N_exp])
 set(gca, 'fontsize', 16)
+pbaspect([2 1 1])
 print('Delta_BIC_empirical_prior.png', '-dpng', '-r500'); close all

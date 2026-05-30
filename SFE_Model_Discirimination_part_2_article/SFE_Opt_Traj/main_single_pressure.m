@@ -2,19 +2,23 @@
 startup;
 %initParPool
 
+datetime
+
 fprintf('=============================================================================\n');
 fprintf('   Optimal trajectory for model discrimination — fixed pressure\n');
 fprintf('=============================================================================\n\n');
 
 %% Run configuration
-N_seeds      = 2;
-N_workers    = 2;
-n_init_knots = 30;
+N_workers    = 1;
+N_seeds      = N_workers;
+n_init_knots = 10;
+
+%N_iter = 100;
 
 timeStep  =  10;       % minutes per simulation step
 finalTime = 600;       % total experiment duration [min]
 
-P_fixed = 130;         % [bar]  fixed pressure — not a decision variable
+P_fixed = 150;         % [bar]  fixed pressure — not a decision variable
 
 casadi_path  = 'C:\Dev\casadi-3.6.3-windows64-matlab2018b';
 %casadi_path  = '/scratch/work/sliczno1/SFE-Model-Discrimination/SFE_Model_Discirimination_part_2_article/SFE_Opt_Traj/casadi_folder';
@@ -29,17 +33,18 @@ timeStep_in_sec = timeStep * 60;
 
 %% Optimizer Settings
 nlp_opts = struct;
-nlp_opts.ipopt.max_iter                   = 2;
+nlp_opts.ipopt.max_iter                   = 10;
+%nlp_opts.ipopt.max_cpu_time               = ipopt_max_time;
 nlp_opts.ipopt.hessian_approximation      = 'limited-memory';
 nlp_opts.ipopt.limited_memory_max_history = min(2 * N_Time, 50);
 nlp_opts.ipopt.mu_strategy                = 'adaptive';
-nlp_opts.ipopt.print_level                = 0;
+nlp_opts.ipopt.print_level                = 5;
 nlp_opts.print_time                       = 0;
 nlp_opts.ipopt.bound_push                 = 0.1;
 
 fprintf('=== Run Configuration ===\n');
-fprintf('Seeds: %d | Workers: %d | Knots: %d | Max iter: %d\n', ...
-    N_seeds, N_workers, n_init_knots, nlp_opts.ipopt.max_iter);
+%fprintf('Seeds: %d | Workers: %d | Knots: %d | Max time: %d\n', ...
+%    N_seeds, N_workers, n_init_knots, ipopt_max_time / 3600);
 fprintf('Fixed pressure: %.1f bar\n\n', P_fixed);
 
 %% Load parameters and data
@@ -69,7 +74,7 @@ end
 fprintf('Time grid: %d steps of %d min | %d sample times\n\n', ...
     N_Time, timeStep, numel(SAMPLE));
 
-%% Covariance matrices
+%% Covariance matrices — cumulative yield
 Cov_power_cum = [
     1.0035e-02,  1.1795e-02,  1.8268e-03,  2.5611e-02;
     1.1795e-02,  5.6469e-02,  3.1182e-03,  2.8266e-02;
@@ -86,7 +91,25 @@ Cov_linear_cum = [
    -1.2661e-02, -2.6206e-02,  3.3012e-03, -4.6300e-02, -1.3133e-01,  1.2975e-02
     ];
 
-sigma2_cases = [2.45e-2, 1.386e-3, 1.007e-2];
+%% Covariance matrices — differential yield
+Cov_power_diff = [
+    3.2963e-03,  1.2094e-03, -2.5042e-03,  6.8414e-03;
+    1.2094e-03,  1.0981e-01, -5.7125e-04,  2.3381e-03;
+   -2.5042e-03, -5.7125e-04,  1.3915e-02, -2.7301e-04;
+    6.8414e-03,  2.3381e-03, -2.7301e-04,  3.8686e-02
+    ];
+
+Cov_linear_diff = [
+    2.2178e-02,  1.0828e-02, -4.3832e-03,  4.3992e-02,  4.4695e-03, -7.4634e-03;
+    1.0828e-02,  4.3513e-01, -2.4832e-02,  3.0423e-03,  6.7633e-01, -3.3289e-02;
+   -4.3832e-03, -2.4832e-02,  2.1282e-03, -7.3766e-03, -3.2298e-02,  2.8884e-03;
+    4.3992e-02,  3.0423e-03, -7.3766e-03,  3.1429e-01, -6.2258e-02, -4.7085e-02;
+    4.4695e-03,  6.7633e-01, -3.2298e-02, -6.2258e-02,  6.1032e+00, -2.4975e-01;
+   -7.4634e-03, -3.3289e-02,  2.8884e-03, -4.7085e-02, -2.4975e-01,  1.8474e-02
+    ];
+
+%% Noise variance: [cumulative, differential]
+sigma2_cases = [2.45e-2, 1.386e-3];
 
 %% Simulation geometry
 m_total = 3.0;
@@ -206,6 +229,8 @@ fixed = struct( ...
     'sigma2_cases',       sigma2_cases,       ...
     'Cov_power_cum',      Cov_power_cum,      ...
     'Cov_linear_cum',     Cov_linear_cum,     ...
+    'Cov_power_diff',     Cov_power_diff,     ...
+    'Cov_linear_diff',    Cov_linear_diff,    ...
     'T_mid',              T_mid,              ...
     'T_half',             T_half,             ...
     'F_mid',              F_mid,              ...
@@ -218,9 +243,6 @@ fixed = struct( ...
 );
 
 %% Launch all seeds asynchronously via parfeval
-% FIX: replaces parfor — parfeval lets the client collect results one by
-%      one as workers finish, so fprintf and save run on the client (no
-%      transparency violation) and checkpoints are written immediately.
 t_par = tic;
 fprintf('Solving %d seeds on %d workers...\n', N_seeds, N_workers);
 results = cell(1, N_seeds);
@@ -238,7 +260,7 @@ for i = 1:N_seeds
     results{res.seed} = res;
 
     % Checkpoint: save on client, not inside worker
-    save(fullfile(checkpoint_dir, sprintf('seed_%03d.mat', res.seed)), 'res');
+    %save(fullfile(checkpoint_dir, sprintf('seed_%03d.mat', res.seed)), 'res');
 
     fprintf('[%2d/%2d] seed=%3d | ok=%d | j0=%.4e → j=%.4e | %.1f min\n', ...
         i, N_seeds, res.seed, res.success, res.j_initial, res.j, res.elapsed_min);
@@ -250,14 +272,7 @@ end
 
 fprintf('\nSolve complete: %.1f s total\n\n', toc(t_par));
 
-%% Identify best seed and save
-j_vals             = cellfun(@(x) x.j, results);
-[j_best, idx_best] = max(j_vals);
-best               = results{idx_best};
-fprintf('Best seed: %d | j = %.6e\n\n', best.seed, j_best);
-
-% FIX: was num2str(P_var) — P_var never defined; use P_fixed
-save([num2str(P_fixed), '_results_single_pressure.mat'], 'results', 'best', 'P_fixed');
+%save(fullfile(checkpoint_dir, sprintf('%g_results.mat', P_fixed)), 'results');
 fprintf('Done.\n');
 datetime
 
@@ -268,7 +283,7 @@ for s = 1:N_seeds
     if isfile(fname)
         tmp = load(fname);
         if ~isempty(tmp.res.feedTemp)
-            results{s} = tmp.res;   % FIX: was tmp.r — field is 'res'
+            results{s} = tmp.res;
         end
     end
 end
@@ -285,6 +300,7 @@ function res = solve_one_seed(s, z0_s, feedTemp0_s, feedFlow0_s, fixed)
     t0     = tic;
     N_Time = fixed.N_Time;
     n_samp = numel(fixed.N_Sample);
+    n_diff = n_samp - 1;   % number of differential yield intervals
 
     res = struct( ...
         'seed',        s,              ...
@@ -298,8 +314,10 @@ function res = solve_one_seed(s, z0_s, feedTemp0_s, feedFlow0_s, fixed)
         'feedPress',   fixed.P_fixed,  ...
         'feedTemp0',   feedTemp0_s',   ...
         'feedFlow0',   feedFlow0_s',   ...
-        'Y_cum_P',     NaN(1, n_samp), ...   % sized to sample times
+        'Y_cum_P',     NaN(1, n_samp), ...   % cumulative — kept for diagnostics
         'Y_cum_L',     NaN(1, n_samp), ...
+        'dY_P',        NaN(1, n_diff), ...   % differential yield (Power model)
+        'dY_L',        NaN(1, n_diff), ...   % differential yield (Linear model)
         'elapsed_min', NaN,            ...
         'error_msg',   '');
 
@@ -331,13 +349,13 @@ function res = solve_one_seed(s, z0_s, feedTemp0_s, feedFlow0_s, fixed)
         x0 = [fixed.C0fluid'; fixed.C0solid * fixed.bed_mask; ...
               (enthalpy_rho / 1e4) * ones(fixed.nstages, 1); P; 0];
 
-        Parameters_sym               = MX(cell2mat(fixed.Parameters));
+        Parameters_sym                = MX(cell2mat(fixed.Parameters));
         Parameters_sym(fixed.which_k) = k(1:numel(fixed.which_k));
         U_base                        = [uu'; repmat(Parameters_sym, 1, N_Time)];
 
-        f_power  = @(x, u) modelSFE(x, u, fixed.bed_mask, fixed.timeStep_in_sec, ...
+        f_power  = @(x, u) modelSFE_thermal_lag(x, u, fixed.bed_mask, fixed.timeStep_in_sec, ...
             'Power_model',  fixed.epsi_mask, fixed.one_minus_epsi_mask);
-        f_linear = @(x, u) modelSFE(x, u, fixed.bed_mask, fixed.timeStep_in_sec, ...
+        f_linear = @(x, u) modelSFE_thermal_lag(x, u, fixed.bed_mask, fixed.timeStep_in_sec, ...
             'Linear_model', fixed.epsi_mask, fixed.one_minus_epsi_mask);
 
         F_accum_power  = buildIntegrator(f_power,  [fixed.Nx, fixed.Nu], fixed.timeStep_in_sec, 'cvodes') ...
@@ -348,43 +366,66 @@ function res = solve_one_seed(s, z0_s, feedTemp0_s, feedFlow0_s, fixed)
         X_power_nom  = F_accum_power(x0,  U_base);
         X_linear_nom = F_accum_linear(x0, U_base);
 
-        % Prepend t=0 then subset to sample times
-        Y_cum_P_sym = [0, X_power_nom(fixed.Nx,  :)];
-        Y_cum_P_sym = Y_cum_P_sym(fixed.N_Sample);
+        % --- Cumulative yield at sample times (prepend t=0, then index) ---
+        Y_cum_P_sym = [0, X_power_nom( fixed.Nx, :)];
+        Y_cum_P_sym = Y_cum_P_sym(fixed.N_Sample);          % 1 x n_samp
         Y_cum_L_sym = [0, X_linear_nom(fixed.Nx, :)];
-        Y_cum_L_sym = Y_cum_L_sym(fixed.N_Sample);
+        Y_cum_L_sym = Y_cum_L_sym(fixed.N_Sample);          % 1 x n_samp
 
-        residuals = Y_cum_P_sym - Y_cum_L_sym;
+        % --- Differencing matrix D : (n_diff) x n_samp ---
+        % Computed numerically once; lifted to CasADi MX to keep graph clean.
+        D_mat = diff(eye(n_samp));                           % numeric (n_diff x n_samp)
+        D     = MX(D_mat);                                   % symbolic lift
 
-        J_P_sym = jacobian(Y_cum_P_sym, k1);
-        J_L_sym = jacobian(Y_cum_L_sym, k2);
+        % --- Differential yields (column vectors) ---
+        dY_P = D * Y_cum_P_sym';                             % (n_diff) x 1
+        dY_L = D * Y_cum_L_sym';                             % (n_diff) x 1
 
-        I = MX.eye(n_samp);
+        % --- Residual in differential space (row vector for j_2) ---
+        residuals = (dY_P - dY_L)';                          % 1 x n_diff
 
-        Sigma_r_P = fixed.sigma2_cases(1) * I + J_P_sym * fixed.Cov_power_cum  * J_P_sym';
-        Sigma_r_L = fixed.sigma2_cases(1) * I + J_L_sym * fixed.Cov_linear_cum * J_L_sym';
-        Sigma_r_P = Sigma_r_P + 1e-10 * I;
-        Sigma_r_L = Sigma_r_L + 1e-10 * I;
+        % --- Jacobians of differential yields wrt parameters ---
+        J_P_diff = jacobian(dY_P, k1);                       % n_diff x 4
+        J_L_diff = jacobian(dY_L, k2);                       % n_diff x 6
 
-        j_1 = trace( Sigma_r_P * (Sigma_r_L\I) + Sigma_r_L * (Sigma_r_P\I) - 2*I );
-        j_2 = residuals * ((Sigma_r_P\I) + (Sigma_r_L\I)) * residuals';
+        % --- Propagated covariance matrices in differential space ---
+        %   Σ = σ²_diff * (D D') + D * J * Cov_k * J' * D'
+        %   D D' is a numeric tridiagonal; computed once to avoid symbolic bloat.
+        I_diff = MX.eye(n_diff);
+        DDt    = MX(D_mat * D_mat');                         % numeric, then lifted
+
+        Sigma_r_P = fixed.sigma2_cases(2) * DDt + J_P_diff * fixed.Cov_power_diff  * J_P_diff';
+        Sigma_r_L = fixed.sigma2_cases(2) * DDt + J_L_diff * fixed.Cov_linear_diff * J_L_diff';
+
+        % Regularisation for numerical stability
+        Sigma_r_P = Sigma_r_P + 1e-10 * I_diff;
+        Sigma_r_L = Sigma_r_L + 1e-10 * I_diff;
+
+        % --- T-optimality criterion ---
+        j_1 = trace( Sigma_r_P * (Sigma_r_L \ I_diff) + ...
+                     Sigma_r_L * (Sigma_r_P \ I_diff) - 2*I_diff );
+        j_2 = residuals * ((Sigma_r_P \ I_diff) + (Sigma_r_L \ I_diff)) * residuals';
         j   = j_1 + j_2;
 
+        % --- Box constraints on normalised decision variables ---
         opti.subject_to(zFeedTemp >= -1);
         opti.subject_to(zFeedTemp <=  1);
         opti.subject_to(zFeedFlow >= -1);
         opti.subject_to(zFeedFlow <=  1);
 
+        % --- Fix parameter values ---
         opti.set_value(k1, fixed.k1_val);
         opti.set_value(k2, fixed.k2_val);
 
-        alpha    = 1e-2;
-        beta     = 1e-2;
+        % --- Smoothness penalty ---
+        alpha    = 1e-3;
+        beta     = 1e-3;
         j_smooth = alpha * sum(diff(zFeedTemp, 1, 2).^2) + ...
                    beta  * sum(diff(zFeedFlow, 1, 2).^2);
 
         opti.minimize(-(j - j_smooth));
 
+        % --- Initial guess ---
         zFeedTemp_0 = reshape(z0_s(1:N_Time),          1, N_Time);
         zFeedFlow_0 = reshape(z0_s(N_Time+1:2*N_Time), 1, N_Time);
 
@@ -397,11 +438,12 @@ function res = solve_one_seed(s, z0_s, feedTemp0_s, feedFlow0_s, fixed)
             valfun      = @(x) sol.value(x);
             res.success = true;
         catch solve_err
-            valfun      = @(x) opti.debug.value(x);
-            res.success  = false;
+            valfun        = @(x) opti.debug.value(x);
+            res.success   = false;
             res.error_msg = solve_err.message;
         end
 
+        % --- Extract initial objective from IPOPT iteration log ---
         try
             stats = opti.stats();
             if isstruct(stats) && isfield(stats, 'iterations') && isfield(stats.iterations, 'obj')
@@ -411,13 +453,16 @@ function res = solve_one_seed(s, z0_s, feedTemp0_s, feedFlow0_s, fixed)
             % stats unavailable — j_initial stays NaN
         end
 
+        % --- Extract results ---
         res.j_1      = full(valfun(j_1));
         res.j_2      = full(valfun(j_2));
-        res.j        = full(valfun(j));        % FIX: consistent with CasADi eval
+        res.j        = full(valfun(j));
         res.feedTemp = full(valfun(feedTemp));
         res.feedFlow = full(valfun(feedFlow));
-        res.Y_cum_P  = full(valfun(Y_cum_P_sym));   % n_samp values — matches pre-alloc
+        res.Y_cum_P  = full(valfun(Y_cum_P_sym));   % 1 x n_samp  — cumulative
         res.Y_cum_L  = full(valfun(Y_cum_L_sym));
+        res.dY_P     = full(valfun(dY_P'));          % 1 x n_diff  — differential
+        res.dY_L     = full(valfun(dY_L'));
 
     catch outer_err
         res.success   = false;

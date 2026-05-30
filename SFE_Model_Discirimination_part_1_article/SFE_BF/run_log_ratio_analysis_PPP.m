@@ -15,20 +15,21 @@
 %       T^(j) = (y^obs - y_hat)' * Sigma^{-1} * (y^obs - y_hat)
 %
 %   where Sigma = sigma^2*I + J*Cov_theta*J' is the predictive covariance
-%   already computed in the discrimination step. Under the null hypothesis
-%   that the model is correct, T^(j) follows approximately:
+%   already computed in the discrimination step.  Because the J*Cov_theta*J'
+%   inflation already accounts for parameter uncertainty, the reference
+%   distribution uses the full observation count:
 %
-%       T^(j) ~ chi^2(nu),   nu = n_Y - d_i
+%       T^(j) ~ chi^2(n_Y)
 %
-%   where n_Y is the number of observations per experiment and d_i is the
-%   number of model parameters. The PPP for experiment j is:
+%   where n_Y is the number of observations per experiment.
+%   The PPP for experiment j is:
 %
-%       PPP^(j) = 1 - F_{chi^2(nu)}(T^(j))
+%       PPP^(j) = 1 - F_{chi^2(n_Y)}(T^(j))
 %
 %   A global PPP is computed from the pooled statistic across all
 %   experiments:
 %
-%       T_global = sum_j T^(j) ~ chi^2(N_exp * nu)
+%       T_global = sum_j T^(j) ~ chi^2(sum_j n_Y^(j))
 %
 %   PPP values near 0.5 indicate good fit. Values below 0.05 or above
 %   0.95 indicate model inadequacy.
@@ -190,6 +191,7 @@ PPP_P_store    = zeros(N_cases, N_exp);   % per-experiment PPP, Power
 PPP_L_store    = zeros(N_cases, N_exp);   % per-experiment PPP, Linear
 T_obs_P_store  = zeros(N_cases, N_exp);   % chi-sq statistic, Power
 T_obs_L_store  = zeros(N_cases, N_exp);   % chi-sq statistic, Linear
+n_Y_all_cases  = zeros(N_cases, N_exp);   % n_Y per case and experiment
 
 %% Run discrimination for each yield case
 for cc = 1:N_cases
@@ -302,6 +304,7 @@ for cc = 1:N_cases
 
         n_Y = numel(data_ref);
         n_Y_store(jj) = n_Y;
+        n_Y_all_cases(cc, jj) = n_Y;
 
         % Residuals
         residuals_P = Y_P(:) - data_ref;
@@ -345,23 +348,26 @@ for cc = 1:N_cases
         %   T^(j) = r' * Sigma^{-1} * r
         %
         % where r = y_obs - y_hat and Sigma is the predictive covariance.
-        % Sigma already integrates out parameter uncertainty, so T^(j)
-        % follows chi^2(nu) with effective degrees of freedom:
         %
-        %   nu = n_Y - d_i
+        % Since Sigma = sigma^2*I + J*Cov_theta*J' already integrates out
+        % parameter uncertainty via the J*Cov_theta*J' inflation, the
+        % reference distribution uses the full n_Y degrees of freedom:
         %
-        % where d_i accounts for the parameters absorbed in fitting.
+        %   T^(j) ~ chi^2(n_Y)
         %
-        % PPP^(j) = 1 - F_{chi^2(nu)}(T^(j))
+        % (Subtracting d_i would double-count the parameter correction
+        %  that is already absorbed by the inflated covariance.)
+        %
+        % PPP^(j) = 1 - F_{chi^2(n_Y)}(T^(j))
         %
         % Note: we use the SAME Sigma already computed for discrimination,
         % ensuring internal consistency between the two analyses.
         % ================================================================
 
-        % Degrees of freedom
-        % n_Y observations minus d_i fitted parameters
-        nu_P = max(n_Y - dP, 1);   % guard against zero or negative df
-        nu_L = max(n_Y - dL, 1);
+        % Degrees of freedom: full n_Y (parameter uncertainty already
+        % accounted for by the J*Cov_theta*J' inflation in Sigma)
+        nu_P = n_Y;
+        nu_L = n_Y;
 
         % Chi-squared discrepancy statistics using Cholesky solves
         % T = r' Sigma^{-1} r = ||L^{-1} r||^2
@@ -396,8 +402,8 @@ for cc = 1:N_cases
     %
     % More generally use sum of individual degrees of freedom.
     % ================================================================
-    nu_P_total = sum(max(n_Y_store - dP, 1));
-    nu_L_total = sum(max(n_Y_store - dL, 1));
+    nu_P_total = sum(n_Y_store);
+    nu_L_total = sum(n_Y_store);
 
     T_global_P = sum(T_obs_P);
     T_global_L = sum(T_obs_L);
@@ -521,25 +527,18 @@ fprintf('%15s | %10s %10s %10s | %10s %10s %10s\n', ...
 fprintf('%s\n', repmat('-', 1, 80));
 
 for cc = 1:N_cases
-    % Recompute global statistics from stored values
-    n_Y_all   = size(PPP_P_store, 2);  % N_exp
-    % Use stored T statistics
     T_g_P = sum(T_obs_P_store(cc,:));
     T_g_L = sum(T_obs_L_store(cc,:));
-    % Degrees of freedom: need n_Y per experiment
-    % For simplicity use the n_Y from the last run (same for all exps)
-    nu_P_g = N_exp * max(n_Y_store - dP, 1);
-    nu_L_g = N_exp * max(n_Y_store - dL, 1);
-    % Use scalar df (assuming constant n_Y across experiments)
-    nu_P_scalar = sum(max(n_Y_store - dP, 1));
-    nu_L_scalar = sum(max(n_Y_store - dL, 1));
 
-    PPP_g_P = 1 - chi2cdf(T_g_P, nu_P_scalar);
-    PPP_g_L = 1 - chi2cdf(T_g_L, nu_L_scalar);
+    % Degrees of freedom from per-case n_Y storage
+    nu_total = sum(n_Y_all_cases(cc,:));
+
+    PPP_g_P = 1 - chi2cdf(T_g_P, nu_total);
+    PPP_g_L = 1 - chi2cdf(T_g_L, nu_total);
 
     fprintf('%15s | %10.3f %10d %10.4f | %10.3f %10d %10.4f\n', ...
-        yield_cases{cc}, T_g_P, nu_P_scalar, PPP_g_P, ...
-        T_g_L, nu_L_scalar, PPP_g_L);
+        yield_cases{cc}, T_g_P, nu_total, PPP_g_P, ...
+        T_g_L, nu_total, PPP_g_L);
 end
 fprintf('=============================================================================\n');
 fprintf('(*) flags experiments where PPP < 0.05 or PPP > 0.95\n\n');

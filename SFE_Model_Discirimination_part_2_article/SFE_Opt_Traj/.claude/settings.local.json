@@ -6,7 +6,12 @@
       "WebFetch(domain:groups.google.com)",
       "WebFetch(domain:arxiv.org)",
       "Bash(xargs grep -l \"confidence\\\\|interval\\\\|Cov\\\\|covariance\\\\|sigma\")",
-      "Bash(grep -l \"explod\\\\|finite\\\\|derivative\\\\|sens\\\\|dual\" *.m)"
+      "Bash(grep -l \"explod\\\\|finite\\\\|derivative\\\\|sens\\\\|dual\" *.m)",
+      "Bash(SRC=\"d:/GitHub/ML4T/SFE-Model-Discrimination/SFE_Model_Discirimination_part_2_article/SFE_Opt_Traj\")",
+      "Bash(DST=\"d:/GitHub/ML4T/SFE-Model-Discrimination/SFE_Model_Discirimination_part_2_article/SFE_Sensitivity_Analysis\")",
+      "Bash(cp \"$SRC/modelSFE.m\" \"$DST/\")",
+      "Bash(cp \"$SRC/modelSFE_thermal_lag.m\" \"$DST/\")",
+      "Bash(cp \"$SRC/two_kinetic_model.m\" \"$DST/\")"
     ]
   }
 }

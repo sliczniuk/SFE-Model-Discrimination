@@ -2,20 +2,25 @@
 startup;
 %initParPool
 
+datetime
+
 fprintf('=============================================================================\n');
 fprintf('   Optimal trajectory for model discrimination (parfor multistart)\n');
 fprintf('=============================================================================\n\n');
 
 %% Run configuration
-N_seeds      = 6;
 N_workers    = 6;
-n_init_knots = 10;
+N_seeds      = N_workers;
+n_init_knots = 20;
+
+N_iter = 2;
 
 timeStep  =  10;       % minutes per simulation step
 finalTime = 600;       % total experiment duration [min]
 
 % Pressure is a piecewise-constant signal that may change every 30 min.
 P_switch_interval = 30;   % [min]
+max_dP = 50;   % maximum allowed change between consecutive pressure knots
 
 %casadi_path  = '/scratch/work/sliczno1/SFE-Model-Discrimination/SFE_Model_Discirimination_part_2_article/SFE_Opt_Traj/casadi_folder';
 casadi_path  = 'C:\Dev\casadi-3.6.3-windows64-matlab2018b';
@@ -26,25 +31,32 @@ if ~exist(save_dir, 'dir')
     mkdir(save_dir);
 end
 
+%% Time grid and sample matching
+Time_in_sec     = (timeStep:timeStep:finalTime) * 60;
+Time            = [0, Time_in_sec/60];
+N_Time          = length(Time_in_sec);
+timeStep_in_sec = timeStep * 60;
+
 %% Optimizer Settings
 nlp_opts = struct;
-nlp_opts.ipopt.max_iter                   = 2;
+nlp_opts.ipopt.max_iter                   = N_iter;
+%%nlp_opts.ipopt.max_cpu_time               = ipopt_max_time;
 nlp_opts.ipopt.tol                        = 1e-7;
 nlp_opts.ipopt.acceptable_tol             = 1e-5;
 nlp_opts.ipopt.acceptable_iter            = 10;
 nlp_opts.ipopt.hessian_approximation      = 'limited-memory';
-nlp_opts.ipopt.nlp_scaling_max_gradient   = 10;
-nlp_opts.ipopt.limited_memory_init_val    = 0.01;
+%nlp_opts.ipopt.nlp_scaling_max_gradient   = 10;
+%nlp_opts.ipopt.limited_memory_init_val    = 0.01;
 nlp_opts.ipopt.print_level                = 5;
 nlp_opts.print_time                       = 0;
 nlp_opts.ipopt.mu_strategy                = 'adaptive';
-nlp_opts.ipopt.obj_scaling_factor         = 0.01;
+%nlp_opts.ipopt.obj_scaling_factor         = 0.01;
 nlp_opts.ipopt.bound_push                 = 0.1;
 nlp_opts.ipopt.limited_memory_max_history = min(2 * N_Time, 50);
 
 fprintf('=== Run Configuration ===\n');
-fprintf('Seeds: %d | Workers: %d | Knots: %d | Max iter: %d\n\n', ...
-    N_seeds, N_workers, n_init_knots, nlp_opts.ipopt.max_iter);
+%fprintf('Seeds: %d | Workers: %d | Knots: %d | Max time: %d\n\n', ...
+%    N_seeds, N_workers, n_init_knots, ipopt_max_time / 3600);
 fprintf('Incremental save directory: %s\n\n', save_dir);
 
 %% Load parameters and data
@@ -57,12 +69,6 @@ LabResults       = readmatrix('dataset_2.xlsx');
 which_k = (0:9) + 44;
 k1_val  = cell2mat(Parameters((0:3) + 44));
 k2_val  = cell2mat(Parameters((4:9) + 44));
-
-%% Time grid and sample matching
-Time_in_sec     = (timeStep:timeStep:finalTime) * 60;
-Time            = [0, Time_in_sec/60];
-N_Time          = length(Time_in_sec);
-timeStep_in_sec = timeStep * 60;
 
 SAMPLE = LabResults(6:19, 1);
 SAMPLE = SAMPLE(2:end);
@@ -172,7 +178,6 @@ fprintf('  Temperature : [%.1f, %.1f] K\n',    T_min, T_max);
 fprintf('  Flow rate   : [%.2e, %.2e] m3/s\n', F_min, F_max);
 fprintf('  Pressure    : [%.1f, %.1f] bar  (%d knots, ZOH every %d min)\n\n', ...
     P_min, P_max, N_P_knots, P_switch_interval);
-
 %% Pre-generate all initial guesses via Latin Hypercube Sampling
 n_lhs_cols = 2 * n_init_knots + N_P_knots;
 
@@ -192,13 +197,24 @@ for s = 1:N_seeds
     interior_idx  = sort(interior_pool(pick));
     init_knot_idx = [1, interior_idx, N_Time];
 
-    temp_knots  = T_min + (T_max - T_min) * lhs(s,                  1 :   n_init_knots);
-    flow_knots  = F_min + (F_max - F_min) * lhs(s,   n_init_knots + 1 : 2*n_init_knots);
-    press_vals  = 130;
+    temp_knots = T_min + (T_max - T_min) * lhs(s,                  1 :   n_init_knots);
+    flow_knots = F_min + (F_max - F_min) * lhs(s,   n_init_knots + 1 : 2*n_init_knots);
 
-    feedTemp_0  = interp1(init_knot_idx, temp_knots, 1:N_Time, 'linear');
-    feedFlow_0  = interp1(init_knot_idx, flow_knots, 1:N_Time, 'linear');
-    feedPress_0 = press_vals * ones(1, N_P_knots);
+    % --- Pressure profile with max single change of 10 ---
+    press_lhs   = lhs(s, 2*n_init_knots + 1 : 2*n_init_knots + N_P_knots);
+
+    % First pressure value anywhere in bounds{
+    feedPress_0(1) = P_min + (P_max - P_min) * press_lhs(1);
+
+    % Remaining values: each step limited to +/- max_dP
+    for k = 2:N_P_knots
+        lb = max(P_min, feedPress_0(k-1) - max_dP);
+        ub = min(P_max, feedPress_0(k-1) + max_dP);
+        feedPress_0(k) = lb + (ub - lb) * press_lhs(k);
+    end
+
+    feedTemp_0 = interp1(init_knot_idx, temp_knots, 1:N_Time, 'linear');
+    feedFlow_0 = interp1(init_knot_idx, flow_knots, 1:N_Time, 'linear');
 
     z0_mat(:, s) = [(feedTemp_0  - T_mid)  / T_half, ...
                     (feedFlow_0  - F_mid)  / F_half, ...
@@ -208,7 +224,6 @@ for s = 1:N_seeds
     feedFlow0_all(:,  s) = feedFlow_0(:);
     feedPress0_all(:, s) = feedPress_0(:);
 end
-
 fprintf('Initial guess summary across %d seeds (LHS):\n', N_seeds);
 fprintf('  Temp  mean %.2f K,   std %.2f K\n',    mean(feedTemp0_all(:)),  std(feedTemp0_all(:)));
 fprintf('  Flow  mean %.2e,     std %.2e\n',       mean(feedFlow0_all(:)),  std(feedFlow0_all(:)));
@@ -245,6 +260,8 @@ parfor s = 1:N_seeds
         'feedPress0',     feedPress0_all(:, s)', ...
         'Y_cum_P',        NaN(1, N_Time), ...
         'Y_cum_L',        NaN(1, N_Time), ...
+        'Pressure_P',     NaN(1, N_Time), ...
+        'Pressure_L',     NaN(1, N_Time), ...
         'error_msg',      '');
 
     try
@@ -283,12 +300,12 @@ parfor s = 1:N_seeds
         Parameters_sym(which_k) = k(1:numel(which_k));
         U_base                  = [uu'; repmat(Parameters_sym, 1, N_Time)];
 
-        f_power_nom       = @(x, u) modelSFE(x, u, bed_mask, timeStep_in_sec, ...
+        f_power_nom       = @(x, u) modelSFE_thermal_lag(x, u, bed_mask, timeStep_in_sec, ...
             'Power_model', epsi_mask, one_minus_epsi_mask);
         F_power_nom       = buildIntegrator(f_power_nom, [Nx, Nu], timeStep_in_sec, 'cvodes');
         F_accum_power_nom = F_power_nom.mapaccum('F_accum_power', N_Time);
 
-        f_linear_nom       = @(x, u) modelSFE(x, u, bed_mask, timeStep_in_sec, ...
+        f_linear_nom       = @(x, u) modelSFE_thermal_lag(x, u, bed_mask, timeStep_in_sec, ...
             'Linear_model', epsi_mask, one_minus_epsi_mask);
         F_linear_nom       = buildIntegrator(f_linear_nom, [Nx, Nu], timeStep_in_sec, 'cvodes');
         F_accum_linear_nom = F_linear_nom.mapaccum('F_accum_linear', N_Time);
@@ -332,7 +349,7 @@ parfor s = 1:N_seeds
         opti.set_value(k1, k1_val);
         opti.set_value(k2, k2_val);
 
-        max_change_normalized = 10 / P_half;
+        max_change_normalized = max_dP / P_half;
         opti.subject_to( diff(zFeedPressKnots, 1, 2) >= -max_change_normalized );
         opti.subject_to( diff(zFeedPressKnots, 1, 2) <=  max_change_normalized );
 
@@ -376,16 +393,19 @@ parfor s = 1:N_seeds
             % stats unavailable — j_initial stays NaN
         end
 
-        res.j_1           = full(valfun(j_1));
-        res.j_2           = full(valfun(j_2));
-        res.j             = full(valfun(j));
-        res.feedTemp      = full(valfun(feedTemp));
-        res.feedFlow      = full(valfun(feedFlow));
-        res.feedPress     = full(valfun(feedPress));
+        res.j_1            = full(valfun(j_1));
+        res.j_2            = full(valfun(j_2));
+        res.j              = full(valfun(j));
+        res.feedTemp       = full(valfun(feedTemp));
+        res.feedFlow       = full(valfun(feedFlow));
+        res.feedPress      = full(valfun(feedPress));
         res.feedPressKnots = full(valfun(feedPressKnots));
-        % --- Store cumulative yield trajectories at sample times ---
-        res.Y_cum_P = full(valfun([0, X_power_nom(Nx, :)]));
-        res.Y_cum_L = full(valfun([0, X_linear_nom(Nx, :)]));
+        % --- Store cumulative yield trajectories ---
+        res.Y_cum_P        = full(valfun([0, X_power_nom(Nx, :)]));
+        res.Y_cum_L        = full(valfun([0, X_linear_nom(Nx, :)]));
+        % --- Store system pressure ---
+        res.Pressure_P     = full(valfun(X_power_nom(Nx-1, :)));
+        res.Pressure_L     = full(valfun(X_linear_nom(Nx-1, :)));
 
     catch outer_err
 
@@ -408,8 +428,8 @@ end
 fprintf('\nParallel solve complete: %.1f s total\n\n', toc(t_par));
 
 %% save
-partial_file = fullfile(save_dir, 'multi_pressure_results.mat');
-save(partial_file, 'results_so_far', '-v7.3');
+full_file = fullfile(save_dir, 'multi_pressure_results.mat');
+%save(full_file, 'results', '-v7.3');
 
 datetime
 
@@ -447,8 +467,8 @@ if isempty(n)
         'error_msg', '');   % FIX: match updated result struct
     results_so_far = repmat(template, 1, N_total);
 
-    partial_file = fullfile(save_dir, 'multi_pressure_partial.mat');
-    save(partial_file, 'results_so_far', '-v7.3');
+    %partial_file = fullfile(save_dir, 'multi_pressure_partial.mat');
+    %save(partial_file, 'results_so_far', '-v7.3');
 end
 
 n = n + 1;
@@ -456,8 +476,8 @@ results_so_far(msg.seed) = msg.result;
 
 result    = msg.result;
 seed_file = fullfile(save_dir, sprintf('seed_%d.mat', msg.seed));
-save(seed_file, 'result', '-v7.3');
-save(partial_file, 'results_so_far', '-v7.3');
+%save(seed_file, 'result', '-v7.3');
+%save(partial_file, 'results_so_far', '-v7.3');
 
 elapsed = posixtime(datetime('now')) - t_start;
 eta     = (elapsed / n) * (N_total - n);
