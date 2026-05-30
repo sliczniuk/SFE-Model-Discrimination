@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.5) (preloaded format=pdflatex 2023.5.26)  4 FEB 2026 21:28
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 23.5) (preloaded format=pdflatex 2023.5.26)  30 MAY 2026 22:26
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1593,7 +1593,7 @@ Overfull \hbox (123.62721pt too wide) detected at line 121
  []
 
 (Article_Model_Discrimination-Chamomile_part_2.abs)
-<thumbnails/cas-email.jpeg, id=94, 225.84375pt x 225.84375pt>
+<thumbnails/cas-email.jpeg, id=78, 225.84375pt x 225.84375pt>
 File: thumbnails/cas-email.jpeg Graphic file (type jpg)
 <use thumbnails/cas-email.jpeg>
 Package pdftex.def Info: thumbnails/cas-email.jpeg  used on input line 121.
@@ -1636,7 +1636,7 @@ Underfull \hbox (badness 1924) in paragraph at lines 25--26
 
 pdfTeX warning: pdflatex.exe (file ./Figures/PFD.drawio.pdf): PDF inclusion: fo
 und PDF version <1.7>, but at most version <1.5> allowed
-<Figures/PFD.drawio.pdf, id=145, 871.33525pt x 336.29637pt>
+<Figures/PFD.drawio.pdf, id=129, 871.33525pt x 336.29637pt>
 File: Figures/PFD.drawio.pdf Graphic file (type pdf)
 <use Figures/PFD.drawio.pdf>
 Package pdftex.def Info: Figures/PFD.drawio.pdf  used on input line 29.
@@ -1649,94 +1649,141 @@ Overfull \hbox (8.60632pt too wide) in paragraph at lines 93--94
  []
 
 [3]
-<Figures/SFE_PFD.drawio.png, id=213, 8222.72pt x 4626.28375pt>
+<Figures/SFE_PFD.drawio.png, id=197, 8222.72pt x 4626.28375pt>
 File: Figures/SFE_PFD.drawio.png Graphic file (type png)
 <use Figures/SFE_PFD.drawio.png>
 Package pdftex.def Info: Figures/SFE_PFD.drawio.png  used on input line 97.
 (pdftex.def)             Requested size: 202.51772pt x 156.9374pt.
  (Sections/Saturation.tex [4 <./Figures/SFE_PFD.drawio.png>]
-<Figures///Di.png, id=245, 386.6445pt x 311.0019pt>
+<Figures///Di.png, id=229, 386.6445pt x 311.0019pt>
 File: Figures///Di.png Graphic file (type png)
 <use Figures///Di.png>
 Package pdftex.def Info: Figures///Di.png  used on input line 34.
-(pdftex.def)             Requested size: 238.25444pt x 191.6423pt.
-<Figures///Gamma.png, id=247, 368.8179pt x 309.7974pt>
+(pdftex.def)             Requested size: 178.69083pt x 143.73172pt.
+<Figures///Gamma.png, id=231, 368.8179pt x 309.7974pt>
 File: Figures///Gamma.png Graphic file (type png)
 <use Figures///Gamma.png>
 Package pdftex.def Info: Figures///Gamma.png  used on input line 41.
-(pdftex.def)             Requested size: 238.25444pt x 200.12741pt.
+(pdftex.def)             Requested size: 178.69083pt x 150.09555pt.
 ) [5 <./Figures///Di.png (PNG copy)> <./Figures///Gamma.png (PNG copy)>]) (Sect
-ions/RBF.tex
-Overfull \hbox (27.04454pt too wide) detected at line 18
- $[][]$  
- []
+ions/ODoE_MD.tex
 
-[6]
-Overfull \hbox (7.03685pt too wide) in paragraph at lines 36--37
- [][] 
- []
-
-<Figures//Results/RBFvsFP.png, id=288, 648.9846pt x 1084.05pt>
-File: Figures//Results/RBFvsFP.png Graphic file (type png)
-<use Figures//Results/RBFvsFP.png>
-Package pdftex.def Info: Figures//Results/RBFvsFP.png  used on input line 43.
-(pdftex.def)             Requested size: 412.90215pt x 654.93767pt.
-<Figures//Results/1.png, id=292, 373.395pt x 294.6207pt>
-File: Figures//Results/1.png Graphic file (type png)
-<use Figures//Results/1.png>
-Package pdftex.def Info: Figures//Results/1.png  used on input line 69.
-(pdftex.def)             Requested size: 158.24646pt x 124.85922pt.
-<Figures//Results/2.png, id=293, 373.395pt x 294.6207pt>
-File: Figures//Results/2.png Graphic file (type png)
-<use Figures//Results/2.png>
-Package pdftex.def Info: Figures//Results/2.png  used on input line 76.
-(pdftex.def)             Requested size: 158.24646pt x 124.85922pt.
-<Figures//Results/3.png, id=294, 373.395pt x 294.6207pt>
-File: Figures//Results/3.png Graphic file (type png)
-<use Figures//Results/3.png>
-Package pdftex.def Info: Figures//Results/3.png  used on input line 83.
-(pdftex.def)             Requested size: 158.24646pt x 124.85922pt.
-) (Sections/ODoE_MD.tex
-Overfull \hbox (25.55382pt too wide) detected at line 22
-[]
- []
+LaTeX Warning: Reference `chap:Parameter_Estimation_Challanger' on page 6 undef
+ined on input line 7.
 
 
-Overfull \hbox (30.55891pt too wide) detected at line 26
+LaTeX Warning: Reference `chap:model' on page 6 undefined on input line 7.
+
+
+LaTeX Warning: Reference `sec:SinglePointMD' on page 6 undefined on input line 
+9.
+
+
+LaTeX Warning: Reference `sec:Bayesian_Factor' on page 6 undefined on input lin
+e 17.
+
+
+LaTeX Warning: Reference `App:Cov' on page 6 undefined on input line 19.
+
+
+Overfull \hbox (89.4789pt too wide) detected at line 31
  $\LS1/stix/m/it/8 D[] [] \LS1/stix/m/n/8 = [] []$  
  []
 
-
-Overfull \hbox (25.53387pt too wide) detected at line 35
- $\LS1/stix/m/it/8 j \LS1/stix/m/n/8 = \LS1/stix/m/it/8 D[] [] \LS1/stix/m/n/8 
-+ \LS1/stix/m/it/8 D[] [] \LS1/stix/m/n/8 = [][] [] [] [] \LS1/stix/m/it/8 dy$ 
- 
- []
-
-[7] [8 <./Figures//Results/RBFvsFP.png>]
-Underfull \hbox (badness 1275) in paragraph at lines 57--58
-\T1/stix/m/n/10 nom-i-nal op-er-at-ing con-di-tions and es-ti-mated pa-ram-e-te
-rs.
+[6]
+Overfull \hbox (90.25381pt too wide) detected at line 38
+ $\LS1/stix/m/it/8 j[] \LS1/stix/m/n/8 = \LS1/stix/m/it/8 D[] [] \LS1/stix/m/n/
+8 + \LS1/stix/m/it/8 D[] [] \LS1/stix/m/n/8 = [][] [] [] [] \LS1/stix/m/it/8 dy
+$  
  []
 
 
-Underfull \hbox (badness 1838) in paragraph at lines 57--58
-\T1/stix/m/n/10 The prod-uct of this sen-si-tiv-ity with the cor-re-spond-ing
- []
-
-[9 <./Figures//Results/1.png (PNG copy)> <./Figures//Results/2.png (PNG copy)> 
-<./Figures//Results/3.png (PNG copy)>]
-Underfull \hbox (badness 1565) in paragraph at lines 84--85
-[]\T1/stix/m/n/10 Although both mod-els were fit-ted us-ing the same
+Overfull \hbox (44.27441pt too wide) detected at line 45
+ $\LS1/stix/m/it/8 j[] \LS1/stix/m/n/8 = [] []$  
  []
 
 
-Underfull \hbox (badness 1019) in paragraph at lines 84--85
-\T1/stix/m/n/10 dataset, they in-cor-po-rate struc-turally dif-fer-ent ex-trac-
-tion
+Package hyperref Warning: Difference (2) between bookmark levels is greater 
+(hyperref)                than one, level fixed on input line 50.
+
+
+Overfull \hbox (24.5845pt too wide) detected at line 75
+ $[][]$  
  []
 
-) (Article_Model_Discrimination-Chamomile_part_2.bbl
+
+LaTeX Warning: Reference `fig:Discrimination_index_666_with_modelling_error' on
+ page 7 undefined on input line 81.
+
+
+LaTeX Warning: Reference `fig:AUC_scatter' on page 7 undefined on input line 81
+.
+
+
+LaTeX Warning: Reference `fig:JS_scatter' on page 7 undefined on input line 81.
+
+
+
+Underfull \hbox (badness 1226) in paragraph at lines 81--82
+[]\T1/stix/m/n/10 Figure [][]5g[][] shows that, ini-tially, the pre-dicted yiel
+d
+ []
+
+
+Underfull \hbox (badness 1117) in paragraph at lines 81--82
+\T1/stix/m/n/10 1.0, KS = 1.0). When em-pir-i-cal mea-sure-ment noise is
+ []
+
+
+Underfull \hbox (badness 1189) in paragraph at lines 81--82
+\T1/stix/m/n/10 a mod-est im-prove-ment over the best constant-condition
+ []
+
+<Figures/Results/OptTraj_press.png, id=276, 421.62318pt x 316.25352pt>
+File: Figures/Results/OptTraj_press.png Graphic file (type png)
+<use Figures/Results/OptTraj_press.png>
+Package pdftex.def Info: Figures/Results/OptTraj_press.png  used on input line 
+105.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+<Figures/Results/OptTraj_scatter.png, id=278, 421.62318pt x 316.25352pt>
+File: Figures/Results/OptTraj_scatter.png Graphic file (type png)
+<use Figures/Results/OptTraj_scatter.png>
+Package pdftex.def Info: Figures/Results/OptTraj_scatter.png  used on input lin
+e 112.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+<Figures/Results/OptTraj_dist_final_model.png, id=280, 421.62318pt x 316.25352p
+t>
+File: Figures/Results/OptTraj_dist_final_model.png Graphic file (type png)
+<use Figures/Results/OptTraj_dist_final_model.png>
+Package pdftex.def Info: Figures/Results/OptTraj_dist_final_model.png  used on 
+input line 119.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+<Figures/Results/OptTraj_temp.png, id=282, 421.62318pt x 316.25352pt>
+File: Figures/Results/OptTraj_temp.png Graphic file (type png)
+<use Figures/Results/OptTraj_temp.png>
+Package pdftex.def Info: Figures/Results/OptTraj_temp.png  used on input line 1
+26.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+<Figures/Results/OptTraj_dist_final_obs.png, id=284, 421.62318pt x 316.25352pt>
+
+File: Figures/Results/OptTraj_dist_final_obs.png Graphic file (type png)
+<use Figures/Results/OptTraj_dist_final_obs.png>
+Package pdftex.def Info: Figures/Results/OptTraj_dist_final_obs.png  used on in
+put line 132.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+<Figures/Results/OptTraj_flow.png, id=286, 421.62318pt x 316.25352pt>
+File: Figures/Results/OptTraj_flow.png Graphic file (type png)
+<use Figures/Results/OptTraj_flow.png>
+Package pdftex.def Info: Figures/Results/OptTraj_flow.png  used on input line 1
+39.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+<Figures/Results/OptTraj_yield.png, id=288, 421.62318pt x 316.25352pt>
+File: Figures/Results/OptTraj_yield.png Graphic file (type png)
+<use Figures/Results/OptTraj_yield.png>
+Package pdftex.def Info: Figures/Results/OptTraj_yield.png  used on input line 
+146.
+(pdftex.def)             Requested size: 154.86392pt x 116.16264pt.
+) [7] (Article_Model_Discrimination-Chamomile_part_2.bbl
 Underfull \hbox (badness 1117) in paragraph at lines 54--62
 \T1/stix/m/n/8 Ex-per-i-men-tal study of ke-to-cona-zole im-preg-na-tion into p
 olyvinyl
@@ -1747,13 +1794,17 @@ Underfull \hbox (badness 10000) in paragraph at lines 85--91
 []\T1/stix/m/n/8 Nedasadat Saa-dati Ardestani, Gho-lamhos-sein Sode-ifian, and
  []
 
-
+[8 <./Figures/Results/OptTraj_press.png (PNG copy)> <./Figures/Results/OptTraj_
+scatter.png (PNG copy)> <./Figures/Results/OptTraj_dist_final_model.png (PNG co
+py)> <./Figures/Results/OptTraj_temp.png (PNG copy)> <./Figures/Results/OptTraj
+_dist_final_obs.png (PNG copy)> <./Figures/Results/OptTraj_flow.png (PNG copy)>
+ <./Figures/Results/OptTraj_yield.png (PNG copy)>]
 Underfull \hbox (badness 3601) in paragraph at lines 94--100
 []\T1/stix/m/n/8 Gholamhossein Sode-ifian, Seyed Ali Sa-ja-dian, and Reza De-r-
 
  []
 
-[10]
+
 Underfull \hbox (badness 1107) in paragraph at lines 150--157
 \T1/stix/m/n/8 dy-namic ex-trac-tion us-ing a su-per-crit-i-cal fluid.  |   [] 
   |   []   |   []
@@ -1768,22 +1819,23 @@ Underfull \hbox (badness 1859) in paragraph at lines 236--240
 []\T1/stix/m/n/8 J. Gmehling, M. Kleiber, B. Kolbe, and J. Rarey.  |   []
  []
 
-) [11{C:/Users/Omistaja/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/stix/stix
--ts1.enc}
+) [9{C:/Users/Omistaja/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/stix/stix-
+ts1.enc}] (Article_Model_Discrimination-Chamomile_part_2.aux)
 
-] (Article_Model_Discrimination-Chamomile_part_2.aux)
+LaTeX Warning: There were undefined references.
+
 Package rerunfilecheck Info: File `Article_Model_Discrimination-Chamomile_part_
 2.out' has not changed.
-(rerunfilecheck)             Checksum: CD4F9109F1E4F4FA3E5CE062FA29D9CE;3940.
+(rerunfilecheck)             Checksum: 1E591013220600D18ACB7A5D768F54E4;3314.
  ) 
 Here is how much of TeX's memory you used:
- 43273 strings out of 476411
- 954715 string characters out of 5787718
- 1899845 words of memory out of 5000000
- 62702 multiletter control sequences out of 15000+600000
- 622119 words of font info for 176 fonts, out of 8000000 for 9000
+ 43276 strings out of 476411
+ 955847 string characters out of 5787718
+ 1893845 words of memory out of 5000000
+ 62718 multiletter control sequences out of 15000+600000
+ 624848 words of font info for 177 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 99i,26n,131p,1412b,842s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 99i,26n,131p,1352b,856s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\Omistaja\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\e
 csx0900.pk> <C:\Users\Omistaja\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec
 /dpi600\ecss0900.pk><C:/Users/Omistaja/AppData/Local/Programs/MiKTeX/fonts/type
@@ -1801,10 +1853,10 @@ Users/Omistaja/AppData/Local/Programs/MiKTeX/fonts/type1/public/stix/stix-mathr
 m.pfb><C:/Users/Omistaja/AppData/Local/Programs/MiKTeX/fonts/type1/public/stix/
 stix-mathscr.pfb><C:/Users/Omistaja/AppData/Local/Programs/MiKTeX/fonts/type1/p
 ublic/stix/stix-mathsf.pfb>
-Output written on Article_Model_Discrimination-Chamomile_part_2.pdf (11 pages, 
-2419259 bytes).
+Output written on Article_Model_Discrimination-Chamomile_part_2.pdf (9 pages, 2
+438174 bytes).
 PDF statistics:
- 492 PDF objects out of 1000 (max. 8388607)
- 106 named destinations out of 1000 (max. 500000)
- 258 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 471 PDF objects out of 1000 (max. 8388607)
+ 93 named destinations out of 1000 (max. 500000)
+ 277 words of extra memory for PDF output out of 10000 (max. 10000000)
 

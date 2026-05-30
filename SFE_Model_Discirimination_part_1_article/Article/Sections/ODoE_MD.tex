@@ -2,134 +2,182 @@
 \graphicspath{{\subfix{../Figures/}}}
 \begin{document}
 	
-	\section{Model discrimination} \label{chap:DOE_discrimination}
-	
-	Multiple alternative models are frequently proposed to describe the same physical phenomenon. Discriminating between these models requires performing a new set of experiments. Each model predicts the response $y$ as a function of experimental conditions $\Xi$ and model parameters $\theta$ (here, $\theta$ refers to parameters describing extraction kinetics and constitutes a subset of the parameter space $\Theta$). The models differ in their mathematical formulation and the parameters involved, although some parameters appearing in different models may share the same physical interpretation.
-	
-	Mathematical models can be developed from multiple hypotheses about physical phenomena and subsequently tested against experimental data. Alternatively, universal function approximators can be employed when limited information about the system is available. Depending on prior knowledge, model developers can choose between purely theoretical and data-driven approaches. The following section presents an alternative formulation to the model described in Section \ref{chap:model}, specifically substituting the extraction kinetic term presented in Section \ref{CH: Kinetic}. The details on the challenger model can be found in Appendix \ref{chap:Parameter_Estimation_Challanger}. This combination leverages general knowledge about the system while acknowledging that extraction kinetics may be difficult to formulate solely from mass transfer theory. The fundamental source of modelling uncertainty lies in the fact that solute mass transfer between solid and fluid phases depends on multiple factors and phenomena that vary between plant materials. Consequently, no unified model exists that can accurately describe all SFE processes.
-	
-	\subsection{Statistical analysis for the single-point model discrimination}
-	When developing a process model, several alternative modelling solutions are typically proposed and subsequently compared. Discrepancies in the outputs of competing models under identical inputs are expected due to differences in model structure. Identifying where models differ most substantially can reveal model or data deficiencies.
-	
-	Following the work of \citet{Box1967}, \citet{Himmelblau1970}, and \citet{Bard1974}, the ratio of two probability distributions can serve as a measure of evidence favouring one model over another. The quantity $\ln\left( \frac{p_1(y)}{p_2(y)} \right)$ represents the odds in favour of hypothesis $H_1$ (that $p_1(y)$ is the true model) over hypothesis $H_2$ (that $p_2(y)$ is the true model). Alternatively, this ratio can be interpreted as the information supporting hypothesis $H_1$ relative to hypothesis $H_2$. The `weight of evidence' or expected information favouring $H_1$ over $H_2$ can be defined through the Kullback--Leibler divergence (KL divergence):
+\section{Model discrimination} \label{chap:DOE_discrimination}
+
+Mathematical models are constructed based on specific hypotheses regarding physical phenomena and are subsequently validated using experimental data. Each model predicts the response $y$ as a function of experimental conditions $\Xi$ and model parameters $\theta$ (parameters associated with extraction kinetics) and constitutes a subset of the parameter space $\Theta$. Although the models differ in their structures and parameter sets, certain parameters may retain consistent physical interpretations across models.
+
+The Appendix \ref{chap:Parameter_Estimation_Challanger} introduces an alternative formulation to the model described in Section \ref{chap:model}, specifically replacing the extraction kinetic term from Section \ref{CH: Kinetic}. When multiple models are available, selecting the final model is a critical decision. A straightforward approach is to select the model with the lowest modelling error; however, this method is inadequate when several models exhibit similar performance. Alternatively, the relative evidence supporting one model over another can be evaluated. If such comparisons remain inconclusive, a new experiment should be designed at the operating conditions where the model outputs differ most significantly. 
+
+\subsection{Bayesian Factor approach} \label{sec:Bayesian_Factor}
+
+According to the sequential model discrimination procedure described by \citet{Box1967}, the objective of model selection is to identify the model that best represents the data. As noted by \citet{Box1967}, \citet{Kass1995}, \citet{Bishop2008}, \citet{Rasmussen2006}, \citet{Himmelblau1970}, and other researchers, Bayes' theorem provides a quantitative framework for evaluating how well each model accounts for the observed evidence or data. After conducting $n$ experiments, the posterior probability that model $i$ is correct is updated sequentially using Bayes' theorem:
+
+{\footnotesize
 	\begin{equation}
-		D_{\mathrm{KL}}\left( p_1(y) \| p_2(y) \right) = \int_{-\infty}^{\infty} p_1(y) \ln\left( \frac{p_1(y)}{p_2(y)} \right) \mathrm{d}y
-	\end{equation}
-	
-	In essence, $D_{\mathrm{KL}}(p_1(y) \| p_2(y))$ measures how distinctly data drawn from $p_1$ would differ from data drawn from $p_2$. A large value indicates that observations from $p_1$ are unlikely to be mistaken for those from $p_2$. Conversely, $D_{\mathrm{KL}}(p_2(y) \| p_1(y))$ quantifies the difficulty of confusing data from $p_2$ with data from $p_1$. These divergences can be viewed as asymmetric measures of distance between probability distributions. If model~1 is correct, it is desirable to conduct an experiment $\Xi$ likely to confirm this by producing a large value of $D_{\mathrm{KL}}\left( p_1(y) \| p_2(y) \right)$. Conversely, if model~2 is correct, the experiment $\Xi$ should yield a large value of $D_{\mathrm{KL}}\left( p_2(y) \| p_1(y) \right)$.
-	
-	The probability distributions $p_1(y)$ and $p_2(y)$ can be obtained analytically under certain assumptions (Section~\ref{sec:OPT_model_disc_gaussian}) or numerically via Monte Carlo (MC) methods. In this section, the Monte Carlo approach is used to evaluate the probability density function of model $i$ output at fixed operating conditions under parameter uncertainty:
-	\begin{equation} \label{EQ:p_i_d_theta}
-		p_i(y(t)) = \int p_i(y(t)|\theta_i) \, p_i(\theta_i|\hat{\theta}_i,\Sigma_i) \, \mathrm{d}\theta_i
-	\end{equation}
-	
-	Equation~\ref{EQ:p_i_d_theta} marginalises over the parameter uncertainty, where $p_i(\theta_i|\hat{\theta}_i,\Sigma_i)$ represents the posterior distribution of model parameters given estimates $\hat{\theta}_i$ and covariance $\Sigma_i$. This integral can be approximated by several methods such as Kernel Density Estimation (KDE) with a Gaussian kernel. Based on MC simulations, a collection of independent and identically distributed model output samples is obtained. These samples are fitted using KDE to estimate the probability density function $p_i(y)$. This procedure is repeated for both models, and the resulting densities are combined to compute the KL divergence, which is evaluated by numerical integration. It is noted that a degenerate distribution of $p(y_i)$ is not consider an issue due to the marginalisation over the parameter uncertainty.
-	
-	Although, KL divergence measures difference between two distributions it suffers from asymmetry ($KL(P|L)\neq KL(L|P)$), and is unbound. Consequently, the Jensen–Shannon divergence (J-S D) is introduced (Equation \ref{EQ:JSD}). When using logarithm base 2, J-SD is bounded between 0 and 1 for discrete distributions. Otherwise, the upper bound of $D_J$ is $\ln(2)$.
-	
-	{\footnotesize 
-		\begin{equation} \label{EQ:JSD}
-			D_J = D_{\mathrm{KL}}\left( p_1(y) | p_2(y) \right) + D_{\mathrm{KL}}\left( p_2(y) | p_1(y) \right) 
-	\end{equation} }
-	
-	Except for J-S D, the Kolmogorov–Smirnov test (K-S) is applied to compare empirical distributions obtained from the models. K-S is a non-parametric test of the equity between one-dimensional probability distributions. To be more precise, the test check if the analysed samples come from the same distribution. As the there is no reference distribution, the two-sample version of the test is used. Based on the analogy to the binary classification problem, alternative measures, such as the Mann–Whitney U or AUC (Area Under Curve) tests, can be introduced. The idea is to treat samples from both models as if they came from different classes. The AUC become probability that a randomly drawn Power model samples exceeds a randomly drawn Linear model samples, plus half the probability of a tie. This yields a value in between 0 and 1, where 0.5 indicates no discrimination (complete overlap) and values closer to 1 indicate strong separation. The last proposed way of measuring the discrimination potential is to analyse the distribution of the difference between both models, and check if zero lies within the 95\% confidence interval.
-	
-	\subsection{Results}
-	
-	Figures \ref{fig:AUC_scatter} and \ref{fig:JS_scatter} show values of JS-D and AUC based on the cumulative yield at the final time (600 min) and various operating conditions.
-	
-	\begin{figure}[h!]
-		\begin{subfigure}[b]{\columnwidth}
-			\centering
-			\includegraphics[trim = 1.0cm 0.25cm 1.25cm 0.25cm,clip,width=\columnwidth]{Figures/Results/AUC_scatter.png}
-			\caption{AUC results}
-			\label{fig:AUC_scatter}
-		\end{subfigure}
-		\hfill
-		\begin{subfigure}[b]{\columnwidth}
-			\centering
-			\includegraphics[trim = 1.0cm 0.25cm 1.25cm 0.25cm,clip,width=\columnwidth]{Figures/Results/JS_scatter.png}
-			\caption{J-SD results}
-			\label{fig:JS_scatter}
-		\end{subfigure}
-		\caption{Discrimination indicators at final time and under various operating conditions}
-		\label{fig:Model_discrimination_scatter}
-	\end{figure} 
-	
-	Both figures show different that similarities in terms of identified regions of model discrimination. AUC and J-S D suggest that at high pressures (160 and 200 bar), the discrimination potential increases with the mass flow-rate. The same is not true for 120 bar, where models become difficult to discriminate from each other in the region of high mass flow-rate and elevated temperature. The 100 bar regions shows a distinct zone of low model separability, and two regions of high model discrimination. 
-	
-	Figures \ref{fig:Yield_dist_evolution} and \ref{fig:Rate_dist_evolution} show temporal evolution of model outputs (cumulative differentiated yield) at high and low discrimination operating conditions.
-	
-	Comparison between Figures \ref{fig:Yield_dist_evolution} and \ref{fig:Rate_dist_evolution} shows the main drawback of using point estimates for the model discrimination. This method doesn't take into account the previous observations, so might be misleading if both models coincidently shows similar results at the measurement time. It is noted that two dynamical systems might reach the same state but on different path, which wouldn't be recognised by the single-point estimates.
-	
-	The selection of appropriate model output should be consider given the system dynamic, as they might lead to different conclusion. The single-point estimates from the cumulative and differentiated yield are compared in Figure \ref{fig:Model_discrimination_index}. 
-	
-	\begin{figure}[h!]
+		P_i^{(n)} = \frac{P_i^{(n-1)} \, p_i(y^{(n)}(\Xi))}{\displaystyle\sum_{k=1}^{N_{Model}} P_k^{(n-1)} \, p_k(y^{(n)}(\Xi))}
+		\label{eq:posterior}
+\end{equation}}
+
+where $P_i^{(0)} = 1/2$ reflects an uninformative prior, $p_i(y^{(n)}(\Xi))$ is the likelihood of the $n$th observation under model $i$, and $N_{Model}$ is the number of compared models (2 in this work). Under the assumption of Gaussian predictive errors and treating the predictive covariance $\Sigma_i^{(k)}$ (Appendix~\ref{App:Cov}) as incorporating parameter uncertainty through error propagation, the cumulative log-likelihood after all $n$ experiments is:
+
+{\footnotesize
+	\begin{equation}
+		\ln L_i^{(n)} = \sum_{k=1}^{n} \left[ -\frac{1}{2} \ln |\Sigma_i^{(k)}| - \frac{n_Y}{2} \ln(2\pi) - \frac{1}{2} \left( Y^{(k)}(\Xi) - y_i^{(k)}(\Xi) \right)^\top \left(\Sigma_i^{(k)}\right)^{-1} \left( Y^{(k)}(\Xi) - y_i^{(k)}(\Xi) \right) \right]
+		\label{eq:loglik}
+\end{equation}}
+
+The superscript $(k)$ indicates that the values were obtained from experiment $k$. $\Sigma_i^{(k)}$ denotes the predicted covariance matrix, $Y^{(k)}$ represents the observed data vector, and $y_i^{(k)}$ refers to the predicted response from model $i$. Assuming all models are equally likely prior to observing the data, the posterior model probability can be expressed in terms of the marginal log-likelihoods. Equation \ref{eq:posterior_loglik} is derived directly from Bayes' rule after reparametrisation and presents the likelihood ratio in logarithmic form:
+
+{\footnotesize
+	\begin{align}
+		P_1^{(n)} &= \frac{1}{1 + \exp  \left(\ln L_2^{(n)} - \ln L_1^{(n)}\right) } \nonumber \\
+		P_2^{(n)} &= 1 - P_1^{(n)}
+		\label{eq:posterior_loglik}
+\end{align}}
+
+When the probability surpasses a predefined threshold (e.g., $P_i^{(n)} > 0.95$), the experiments are considered to provide sufficient information for model selection. Beyond cumulative posterior probabilities (Equation \ref{eq:posterior_loglik}), the evidence from each experiment can be quantified using the per-experiment Bayes Factor. For experiment $k$, the Bayes Factor comparing Model 1 to Model 2 is defined as the ratio of the marginal likelihoods:
+
+{\footnotesize
+	\begin{equation}
+		\ln BF_{12}^{(k)} = \ln L_1\!\left(y^{(k)}(\Xi)\right) - \ln L_2\!\left(y^{(k)}(\Xi)\right)
+\end{equation}}
+
+Values of the Bayes factor greater or smaller than zero indicate evidence favouring one model over the other; this constitutes model selection. The Bayes Factor is the per-experiment tool (discrimination), while the posterior probability is the accumulated result (selection).
+
+\subsubsection{Numerical results} 
+
+Bayesian model discrimination was conducted to compare the predictive performance of the Power model (Equation \ref{EQ:Challanger_model_1}) and the Linear model (Equation \ref{EQ: C_sat_function}, incorporating linear correlations) across cumulative, differentiated, and normalised yield representations. Normalisation was achieved by dividing each observation by the largest single value from the experiment. Figure \ref{fig:P_L} presents the evolution of the posterior probability (Equation \ref{eq:posterior_loglik}) for the Linear model ($P_L$). The value $P_L$ serves as a predictive metric indicating how effectively the Linear model describes the data relative to the Power model, while accounting for parameter uncertainty.
+
+The subsequent text references specific experiments by their assigned numbers, which are detailed in Tables \ref{tab:ExpCond} and \ref{fig:IF_30_vs_40}.
+
+\begin{figure}[h!] 
+	\centering 
+	\begin{subfigure}[b]{\columnwidth} 
+		\centering 
+		\includegraphics[trim=0.0cm 0.0cm 0.0cm 0.0cm,clip,width=0.85\columnwidth]{Figures/Results/Cum_Prob_L.png} 
+		\caption{Cumulative posterior probability\\of the Linear model} 
+		\label{fig:P_L} 
+	\end{subfigure} 
+	\hfill 
+	\begin{subfigure}[b]{\columnwidth} 
+		\centering 
+		\includegraphics[trim = 0.0cm 0.0cm 0.0cm 0.0cm,clip,width=0.85\columnwidth]{Figures/Results/BF_P_L_log.png} 
+		\caption{Bayes factor for individual experiments} 
+		\label{fig:BF_P_L} 
+	\end{subfigure} 
+	\caption{Evolution of the Bayesian Factor} 
+\end{figure} 
+
+Figure \ref{fig:P_L} illustrates the evolution of $P_L$ as additional experiments are sequentially incorporated. The initial two experiments reveal discrepancies in $P_L$ across different model measurements. Specifically, cumulative data initially favour the Power model, while differentiated and normalised measurements provide stronger support for the Linear model. Incorporating further experiments increases the posterior probability above 0.9, irrespective of the model's output formulation. The aggregated log-evidence from all experiments supports the Linear model across all yield representations. The cumulative posterior probabilities are $P(\mathrm{Linear}) \approx 1$ and $P(\mathrm{Power}) \approx 0$ in each case. Although the Power model contains fewer parameters, it exhibits a slightly higher average mean squared error. While the aggregated results strongly support the Linear model, individual Bayesian Factors do not consistently favour a single model. As shown in Figure \ref{fig:BF_P_L}, Experiments 1 and 6 for cumulative yield, and Experiment 9 for normalised yield, favour the Power model. This finding indicates that reliable model discrimination requires the accumulation of joint evidence across multiple experimental conditions, rather than reliance on individual experiments.
+
+An alternative diagnostic involves computing the Bayesian Information Criterion ($BIC_i = -2\log L_i(\hat{\theta}) + n_p \log n_Y$), which accounts for model complexity. Figure \ref{fig:BF_BIC} presents the evolution of cumulative delta BIC values as experiments are sequentially included. The differentiated and normalised yields exhibit stable behaviour, although they diverge over time. After twelve experiments, the BIC method favours the Power model for normalised yield, whereas the results for differentiated yield favour the Linear model. The cumulative yield results display greater variation but ultimately support the Linear model.
+
+\begin{figure}[h!]
+	\centering 
+	\includegraphics[trim = 0.0cm 1.0cm 0.0cm 2.0cm,clip,width=0.85\columnwidth]{Figures/Results/Delta_BIC_empirical_prior.png}
+	\caption{Temporal evolution of the BIC criterion} 
+	\label{fig:BF_BIC} 
+\end{figure} 
+
+\subsection{Single-point-based approach} \label{sec:SinglePointMD}
+
+If the procedure described in Section \ref{sec:Bayesian_Factor} fails to identify a single model that adequately represents the data, additional experiments are required. This section presents a theoretical framework for designing such experiments, emphasising the identification of experimental conditions that maximise the difference between model outputs while accounting for parameter uncertainty and modelling errors.
+
+\citet{Box1967}, \citet{Himmelblau1970}, and \citet{Bard1974} demonstrated that the ratio of two probability distributions serves as a measure of evidence favouring one model over another. The expression $\ln\left( \frac{p_1(y|\Xi)}{p_2(y|\Xi)} \right)$ quantifies the odds in favour of hypothesis $H_1$ (\(p_1(y|\Xi)\) is the true model), relative to $H_2$ (\(p_2(y|\Xi)\) is the true model). For specific operating conditions \(\Xi\), this evidence can be expressed using the Kullback--Leibler divergence \(D_{\mathrm{KL}}\):
+
+{\footnotesize
+\begin{equation}
+	D_{\mathrm{KL}}\left( p_1(y|\Xi) | p_2(y|\Xi) \right) = \int_{-\infty}^{\infty} p_1(y|\Xi) \ln\left( \frac{p_1(y|\Xi)}{p_2(y|\Xi)} \right) \mathrm{d}y
+\end{equation} }
+
+$D_{\mathrm{KL}}(p_1(y|\Xi) | p_2(y|\Xi))$ quantifies the extent to which data generated from $p_1$ can be distinguished from data generated from $p_2$. A large value suggests that observations from $p_1$ are unlikely to be confused with those from $p_2$. In contrast, $D_{\mathrm{KL}}(p_2(y|\Xi) | p_1(y|\Xi))$ measures the information loss incurred when $p_1$ is used to approximate $p_2$. These divergences serve as asymmetric metrics of distance between probability distributions. Under $H_1$, it is advantageous to design an experiment $\Xi$ that is likely to yield a large value of $D_{\mathrm{KL}}\left( p_1(y|\Xi) | p_2(y|\Xi) \right)$; the converse applies for Model~2.
+
+The probability distributions $p_1(y|\Xi)$ and $p_2(y|\Xi)$ may be derived analytically under Gaussian assumptions or computed numerically using Monte Carlo (MC) methods. In this section, the MC approach is employed to evaluate the predictive probability density function of the output of model $i$ at fixed operating conditions, accounting for parameter uncertainty:
+
+{\footnotesize
+\begin{equation} \label{EQ:p_i_d_theta}
+	p_i(y(t|\Xi)) = \int p_i(y(t)\mid\theta_i, \Xi) , p_i(\theta_i\mid\hat{\theta}_i,\Sigma_i,\Xi) , \mathrm{d}\theta_i
+\end{equation} }
+
+Equation~\ref{EQ:p_i_d_theta} accounts for parameter uncertainty by marginalising over the posterior distribution $p_i(\theta_i \mid \hat{\theta}_i, \Sigma_i, \Xi)$, where $\hat{\theta}i$ and $\Sigma_i$ denote the parameter estimates and covariance, respectively. The integral is approximated using methods such as kernel density estimation (KDE) with a Gaussian kernel. Monte Carlo (MC) simulations generate independent and identically distributed samples of model outputs. KDE is then applied to these samples to estimate the probability density function $p_i(y|\Xi)$. This process is performed for both models, and the resulting densities are used to numerically compute the $D{\mathrm{KL}}$ divergence. A degenerate distribution for $p_i(y|\Xi)$ does not pose a problem in this context because marginalisation over parameter uncertainty provides sufficient variability.
+
+While the $D_{\mathrm{KL}}$ divergence quantifies differences between distributions, its asymmetry ($D_{\mathrm{KL}}(P|L) \neq D_{\mathrm{KL}}(L|P)$) and lack of an upper bound complicate direct comparisons of operating conditions. To overcome these limitations, the Jensen–Shannon divergence ($D_J$) is employed. When the logarithm base is 2, $D_J$ is bounded between 0 and 1 for discrete distributions; otherwise, the upper bound is $\ln(2)$.
+
+{\footnotesize
+	\begin{align}
+		D_J &= \frac{1}{2} D_{\mathrm{KL}}\left( p_1(y|\Xi) | p_M(y|\Xi) \right) + \frac{1}{2} D_{\mathrm{KL}}\left( p_2(y|\Xi) | p_M(y|\Xi) \right) \nonumber \\
+		p_M(y|\Xi) &= \frac{1}{2} \left( p_1(y|\Xi) + p_2(y|\Xi) \right)  
+\end{align} }
+
+Additionally, two complementary discrimination diagnostics are employed. The two-sample Kolmogorov–Smirnov (KS) test is a non-parametric method for assessing distributional separation without assuming a specific distributional form. This test assesses whether the output samples from both models are drawn from the same distribution. The KS statistic ranges from 0 (identical distributions) to 1 (no overlap).
+
+The area under the receiver operating characteristic (ROC) curve (AUC) is analogous to the performance of binary classification. Samples from each model are assigned to distinct classes, and the AUC quantifies the probability that a randomly selected sample from one model exceeds a randomly selected sample from the other. An AUC of 0.5 indicates no discrimination, meaning the output distributions overlap completely, while values approaching 0 or 1 indicate strong separation.
+
+The distribution of the pointwise differences between the two model outputs can be examined directly. If zero lies outside the 95\% confidence interval of this difference distribution, the models are considered to produce statistically distinguishable predictions under that operating condition.
+
+\subsubsection{Numerical results} 
+
+Figures~\ref{fig:AUC_scatter} and~\ref{fig:JS_scatter} present AUC and $D_J$ values calculated from the cumulative yield at the final time point (600~min) under various operating conditions (four discrete values of P were used, along with a continuous range of T and F, as specified by the original experimental conditions), assuming the absence of measurement noise. At elevated pressures (160 and 200~bar), discrimination potential increases with mass flow rate. At 120~bar, distinguishing between models becomes challenging in regions of high mass flow rate and elevated temperature. At 100~bar, a distinct zone of low separability separates two regions of high discrimination. This screening approach helps in the identification of experimental conditions for model discrimination, but do not relays on the trajectory analysis. Notably, two dynamical systems may reach the same state through different trajectories, a distinction that single-point methods cannot capture.
+
+\begin{figure}[h!] 
+	\centering 
+	\begin{subfigure}[b]{\columnwidth} 
+		\centering 
+		\includegraphics[trim=1.0cm 0.25cm 1.25cm 0.25cm,clip,width=0.95\textwidth]{Figures/Results/AUC_scatter.png} \caption{AUC results}
+		\label{fig:AUC_scatter} 
+	\end{subfigure} 
+	\hfill 
+	\begin{subfigure}[b]{\columnwidth} 
+		\centering 
+		\includegraphics[trim=1.0cm 0.25cm 1.25cm 0.25cm,clip,width=0.95\textwidth]{Figures/Results/JS_scatter.png} 
+		\caption{$D_J$ results} 
+		\label{fig:JS_scatter} 
+	\end{subfigure} 
+	\caption{Screening results of AUC and $D_J$} 
+\end{figure} 
+
+%Although the screening maps presented above identify promising operating conditions based on final cumulative yield, they do not capture the evolution of discrimination indices throughout the experiment. 
+Figure~\ref{fig:Model_discrimination_index} addresses this limitation by comparing the temporal evolution of discrimination indices derived from cumulative and differentiated yields, with a sampling interval of 30~min. In the low-discrimination scenario (Figure~\ref{fig:Discrimination_index_333}), cumulative yield-based indicators suggest that discrimination is confined to the initial phase. In contrast, rate-based indices display a decline followed by a recovery before ultimately decaying to zero. This behavior occurs when one model initially predicts a lower extract but subsequently surpasses the other, resulting in a crossover of model outputs. Consequently, rate-based indices offer improved discrimination during the later stages of extraction, indicating that the measurement strategy affects both the magnitude and the temporal window of discrimination.
+
+In the high-discrimination case (Figure~\ref{fig:Discrimination_index_666}), all indicators demonstrate rapid initial changes and stabilize at their upper bounds at approximately 150 min. This observation suggests that the experiment duration can be reduced by determining when the indicators reach predefined thresholds.
+
+For the same case, $D_J$, AUC, and KS demonstrate similar temporal patterns, the $D_{\mathrm{KL}}$ divergence reveals asymmetric behavior. The substantial difference between $D_{\mathrm{KL}}(L\|P)$ and $D_{\mathrm{KL}}(P\|L)$ suggests that one model generates extreme outcomes that are improbable under the alternative model, as evidenced by the output distributions (see Appendix~\ref{App:distributions}).
+
+It was also noted that the rate-based methods display a transient decline between 350 and 450~min, a feature not observed in the cumulative yield indicators. This is due to model output crossover described above.
+
+% Page 1
+\begin{figure}[h!]
+	\centering
+	\begin{subfigure}[b]{\columnwidth}
 		\centering
-		\begin{subfigure}[b]{\columnwidth}
-			\centering
-			\includegraphics[trim = 1.8cm 1.0cm 2.0cm 0.8cm,clip,width=\columnwidth]{Figures/Results/rate_comparison_P200_T30_F333.png}
-			\caption{F=3.33e-5kg/s}
-			\label{fig:Discrimination_index_333}
-		\end{subfigure}
-		\hfill
-		\begin{subfigure}[b]{\columnwidth}
-			\centering
-			\includegraphics[trim = 1.8cm 1.0cm 2.0cm 0.8cm,clip,width=\columnwidth]{Figures/Results/rate_comparison_P200_T30_F667.png}
-			\caption{F=6.67e-5kg/s}
-			\label{fig:Discrimination_index_666}
-		\end{subfigure}
-		\caption{Temporal evolution of discrimination indices at T=30$^\circ$ C, P=200 bar}
-		\label{fig:Model_discrimination_index}
-	\end{figure} 
-	
-	Detailed analysis of Figures \ref{fig:Discrimination_index_333} and \ref{fig:Discrimination_index_666} showed different patterns depending on the discrimination potential. Due to its nature, the cumulative yield absorbs the fluctuations in the measurements which leads to more stable results, but might miss informative local changes in the model output. It is evident on from the plots that indicators computed from the differentiated varies more than the one for cumulative yield, which would affect the conclusion on the model discrimination. Figure \ref{fig:Discrimination_index_333} shows that the rate-based indices dropped (overlaying distributions) between 300 and 400 min, while the indicators based on the circulative yield has not. If a rate-based indexes from that period would be used, then 
-	
-	Although, J-S D, AUC and K-S exhibit similar patterns, the analysis of K-L D plots reveal asymmetric behaviour. K-L D can be understood as a measure of how much information is lost when one distribution approximates another. The large difference between KL(L|P) and KL(P|L), provide information that one model return extreme results which are 'unlikely' accordingly to the second model. This interpenetration aligns with comparison of distributions presented in Figure \ref{fig:Rate_dist_evolution}.
+		\includegraphics[trim = 1.8cm 0.5cm 2.0cm 0.8cm,clip,width=0.95\columnwidth]
+		{Figures/Results/rate_comparison_P200_T30_F333_no_meas_error.png}
+		\caption{F=3.33e-5 kg/s}
+		\label{fig:Discrimination_index_333}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}[b]{\columnwidth}
+		\centering
+		\includegraphics[trim = 1.8cm 0.5cm 2.0cm 0.8cm,clip,width=0.95\columnwidth]
+		{Figures/Results/rate_comparison_P200_T30_F667_no_meas_error.png}
+		\caption{F=6.67e-5 kg/s}
+		\label{fig:Discrimination_index_666}
+	\end{subfigure}
+	\caption{Temporal evolution of discrimination indices at $T=30^\circ$C, $P=200$ bar}
+	\label{fig:Model_discrimination_index}
+\end{figure}
+
+The previous analysis accounted for parameter uncertainty while assuming noise-free measurements. The impact of empirical measurement error is now evaluated for the most promising operating condition. Figure~\ref{fig:Discrimination_index_666_with_modelling_error} illustrates the changes in discrimination metrics after incorporating measurement error for the experiment at $T = 30^\circ$C, $P = 200$~bar, and $F = 6.67 \times 10^{-5}$~kg/s, which previously demonstrated strong discrimination power under noise-free conditions. Uncertainties are calculated by combining Monte Carlo samples from the parameter variance-covariance matrix with measurement error sampled from the empirical Gaussian distribution, as detailed in Table~\ref{tab:empirical_sigma}. A notable reduction in all discrimination factors is observed: $D_J$ decreases from $\ln(2)$ to less than 0.3 (approximately 50\%), KS declines from 1 to 0.63, and AUC decreases from 1 to 0.9. According to \citet{Hond2022}, AUC values above 0.8 indicate moderate or good discrimination, which suggests that AUC is the most robust index among those considered. Since AUC quantifies the probability of correct pairwise ranking rather than absolute distributional distance, it is less affected by symmetric measurement noise that shifts both model outputs similarly.
+
+\begin{figure}[h!]
+	\centering 
+	\includegraphics[trim = 1.8cm 0.5cm 2.0cm 1.5cm,clip,width=\columnwidth]{Figures/Results/rate_comparison_ci_P200_T30_F667_meas_error.png} 
+	\caption{Temporal evolution of discrimination indices at T=30$^\circ$ C, P=200 bar, F=6.67e-5kg/s and considering the modelling error} 
+	\label{fig:Discrimination_index_666_with_modelling_error} 
+\end{figure} 
+
+The single-point screening approach effectively identifies regions with high discrimination potential; however, incorporating measurement error significantly diminishes the discriminatory power of all indices. Expanding the set of viable operating conditions for subsequent discrimination experiments is possible by permitting dynamic adjustments to these conditions.
 		
 \end{document}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
